@@ -205,11 +205,6 @@ class JointBilateralFilter:
 def main(args):
     image = cv2.imread(os.path.join(args.input))  # BGR image
 
-    # t1 = cv2.imread("advanced/s1r0.05/0c/origin_bilateral.png")
-    # t2 = cv2.imread("advanced/s3r0.2/0c/w_r_0.0_w_g_0.1_w_b_0.9.png")
-    # t3 = cv2.imread("advanced/s3r0.1/0c/origin_bilateral.png")
-    # t4 = cv2.imread("advanced/s1r0.05/0c/w_r_0.0_w_g_0.1_w_b_0.9.png")
-    # print(np.mean(t2==t4))
     # Conventional (BGR->YUV)
     if args.mode == "c":
         y = 0.299 * image[:, :, 2] + 0.587 * image[:, :, 1] + 0.114 * image[:, :, 0]
@@ -218,20 +213,6 @@ def main(args):
 
     # Advanced (BGR->YUV)
     elif args.mode == "a":
-        """
-        start = time.time()
-        for w_r, w_g, w_b in candidate():
-            y = w_r * image[:, :, 2] + w_g * image[:, :, 1] + w_b * image[:, :, 0]
-            bilateral_filter = JointBilateralFilter(args, image, y, args.sigma_s, args.sigma_r)
-            bilateral_filter.filter()
-            print("Plotting filtered image: w_r:{} w_g:{} w_b:{}".format(w_r, w_g, w_b))
-            image_candidate[(w_r, w_g, w_b)] = bilateral_filter.filtered
-            image_vote[(w_r, w_g, w_b)] = 0
-            plot(bilateral_filter.filtered,
-                 os.path.join(args.output, "w_r_{}_w_g_{}_w_b_{}.png".format(w_r, w_g, w_b)))
-                
-        print("Finish plotting 66 images. Time elapsed:", time.time() - start)
-        """
         bilateral_filter = JointBilateralFilter(args, image)
         for sigma_s in [1, 2, 3]:
             for sigma_r in [0.05, 0.1, 0.2]:

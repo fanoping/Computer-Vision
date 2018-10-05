@@ -11,7 +11,7 @@
         python3 color2gray.py -c 
                               [-p for plot] 
                               [-i (input image)] 
-                              [-o output directory]
+                              [-o (output directory)]
     ```
 
 ## Advanced Color Conversion
