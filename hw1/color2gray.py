@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 import sys
 import os
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 def candidate():
@@ -72,24 +75,33 @@ class JointBilateralFilter:
         if not os.path.exists(filename):
             os.makedirs(filename)
 
+        # for verifying
+        # test = cv2.bilateralFilter(self.image.astype(dtype=np.float32), d=7, sigmaSpace=1, sigmaColor=100)
+        # plot(test*255., os.path.join(filename, "bilateral_bycv2.png"))
+
         # bilateral image
         self.bilateral_image = self.__filter(guide=None)
+
         if self.args.plot:
             print("Plotting bilateral image.")
+            self.bilateral_image *= 255.0
             plot(self.bilateral_image, os.path.join(filename, "origin_bilateral.png"))
 
         # candidates (joint bilateral image)
         for w_r, w_g, w_b in candidate():
+            print("Filtered image: w_r:{} w_g:{} w_b:{}".format(w_r, w_g, w_b), end='\r')
+            sys.stdout.write('\033[K')
+
             y = w_r * self.image[:, :, 2] + w_g * self.image[:, :, 1] + w_b * self.image[:, :, 0]
             y = y / 255.0
             filtered = self.__filter(guide=y)
             if self.args.plot:
-                print("Plotting filtered image: w_r:{} w_g:{} w_b:{}".format(w_r, w_g, w_b), end='\r')
-                sys.stdout.write('\033[K')
+                filtered = filtered * 255.0
                 plot(filtered, os.path.join(filename, "w_r_{}_w_g_{}_w_b_{}.png".format(w_r, w_g, w_b)))
 
             pos = Position(w_r, w_g, w_b)
             self.joint_bilateral_image[pos] = filtered
+
         print("Finish filtering {} images".format(len(self.joint_bilateral_image)))
 
     def __filter(self, guide=None):
@@ -111,38 +123,46 @@ class JointBilateralFilter:
                 # for single-channel image
                 if guide is not None:
                     center_value = guide[y][x]
-                    h_range = np.exp(
-                        -(guide[y_bottom:y_top, x_left:x_right] - center_value) ** 2 / (2 * (self.sigma_r ** 2)))
-                else:
-                    center_value = self.image[y][x]
-                    power = (self.image[y_bottom:y_top, x_left:x_right, 0] - center_value[0]) ** 2
-                    power += (self.image[y_bottom:y_top, x_left:x_right, 1] - center_value[1]) ** 2
-                    power += (self.image[y_bottom:y_top, x_left:x_right, 2] - center_value[2]) ** 2
+
+                    power = (self.image[y_bottom:y_top, x_left:x_right] - center_value) ** 2
                     h_range = np.exp(-power / (2 * (self.sigma_r ** 2)))
 
-                # add together
-                im = self.image[y_bottom:y_top, x_left:x_right]
-                multi = np.multiply(h_space, h_range)
-                filtered[y_bottom:y_top, x_left:x_right, 0] += np.multiply(multi, im[:, :, 0]) / np.sum(multi)
-                filtered[y_bottom:y_top, x_left:x_right, 1] += np.multiply(multi, im[:, :, 1]) / np.sum(multi)
-                filtered[y_bottom:y_top, x_left:x_right, 2] += np.multiply(multi, im[:, :, 2]) / np.sum(multi)
+                    # add together
+                    im = self.image[y_bottom:y_top, x_left:x_right]
+                    multi = np.multiply(h_space, h_range)
+                    filtered[y_bottom:y_top, x_left:x_right, 0] += np.multiply(multi, im[:, :, 0]) / np.sum(multi)
+                    filtered[y_bottom:y_top, x_left:x_right, 1] += np.multiply(multi, im[:, :, 1]) / np.sum(multi)
+                    filtered[y_bottom:y_top, x_left:x_right, 2] += np.multiply(multi, im[:, :, 2]) / np.sum(multi)
 
-        filtered = filtered * 255.0
+                else:
+                    # for self bilateral (rgb image)
+                    center_value = self.image[y][x]
+
+                    power = (self.image[y_bottom:y_top, x_left:x_right, :] - center_value)**2
+                    h_range = np.exp(-power / (2 * (self.sigma_r ** 2)))
+
+                    # add together
+                    im = self.image[y_bottom:y_top, x_left:x_right]
+                    multi_b = np.multiply(h_space, h_range[:, :, 0])
+                    multi_g = np.multiply(h_space, h_range[:, :, 1])
+                    multi_r = np.multiply(h_space, h_range[:, :, 2])
+
+                    filtered[y_bottom:y_top, x_left:x_right, 0] += np.multiply(multi_b, im[:, :, 0]) / np.sum(multi_b)
+                    filtered[y_bottom:y_top, x_left:x_right, 1] += np.multiply(multi_g, im[:, :, 1]) / np.sum(multi_g)
+                    filtered[y_bottom:y_top, x_left:x_right, 2] += np.multiply(multi_r, im[:, :, 2]) / np.sum(multi_r)
+
         return filtered
 
     def __cost(self, image):
         return np.sum(abs(image - self.bilateral_image))
 
     def __is_local_min(self, pos):
-        print("Selected position(weight):", pos, "Local Min: ", end="")
         for neigh in self.joint_bilateral_image:
             if pos == neigh:
                 continue
             elif pos.__isneighbor__(neigh):
                 if self.__cost(self.joint_bilateral_image[neigh]) < self.__cost(self.joint_bilateral_image[pos]):
-                    print("False")
                     return False
-        print("True")
         return True
 
     def vote(self):
@@ -150,10 +170,36 @@ class JointBilateralFilter:
             if self.__is_local_min(pos):
                 pos.vote()
 
-    def vote_result(self):
+    def print_result(self):
         print("===========Result=============")
+        count = 0
         for pos in self.joint_bilateral_image:
-            print(pos, pos.vote)
+            print(pos, pos.votes, end='\t')
+            count += 1
+            if count % 3 == 0:
+                print()
+
+    def plot_result(self, filename):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        ax.set_xlabel("w_r")
+        ax.set_ylabel("w_g")
+        ax.set_zlabel("w_b")
+
+        x, y, z, v = [], [], [], []
+        for pos, _ in self.joint_bilateral_image.items():
+            x.extend(pos.w_r)
+            y.extend(pos.w_g)
+            z.extend(pos.w_b)
+            v.extend(pos.votes)
+
+        p = ax.scatter(x, y, z, c=v, cmap=cm.YlOrRd, s=30, vmin=0, vmax=9)
+        for xs, ys, zs, vs in zip(x, y, z, v):
+            ax.text(xs, ys, zs, vs, fontsize=8)
+        cb = plt.colorbar(p)
+        cb.set_label("votes")
+        plt.savefig(fname=filename)
 
 
 def main(args):
@@ -194,8 +240,11 @@ def main(args):
                 bilateral_filter.sigma_r = sigma_r
                 bilateral_filter.filtered_image_gen()
                 bilateral_filter.vote()
+                bilateral_filter.print_result()
                 print("===========================================================")
-        bilateral_filter.vote_result()
+
+        bilateral_filter.plot_result(os.path.join(args.output,
+                                                  os.path.splitext(os.path.basename(args.input))[0] + '_vote.png'))
 
     else:
         raise NotImplementedError("Please specify the mode \"a\" for advanced or \"c\" for conventional method.")
@@ -203,11 +252,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", default="testdata/0c.png",
+    parser.add_argument("-i", "--input", default="testdata/0a.png",
                         help="rgb input image")
     parser.add_argument("-o", "--output", default="advanced",
                         help="output directory")
-    parser.add_argument("-p", "--plot", default=False,
+    parser.add_argument("-p", "--plot", action="store_true",
                         help="plot for every candidate while initializing")
     parser.add_argument("--mode", default="a",
                         help="c: conventional; a: advanced")
