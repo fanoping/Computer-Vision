@@ -1,11 +1,11 @@
-import argparse
-import cv2
-import numpy as np
-import sys
-import os
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import numpy as np
+import argparse
+import cv2
+import sys
+import os
 
 
 def candidate():
@@ -77,7 +77,7 @@ class JointBilateralFilter:
 
         # for verifying
         # test = cv2.bilateralFilter(self.image.astype(dtype=np.float32), d=7, sigmaSpace=1, sigmaColor=100)
-        # plot(test*255., os.path.join(filename, "bilateral_bycv2.png"))
+        # plot(test*255.0, os.path.join(filename, "bilateral_bycv2.png"))
 
         # bilateral image
         self.bilateral_image = self.__filter(guide=None)
