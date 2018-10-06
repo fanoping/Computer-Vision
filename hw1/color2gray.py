@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 import argparse
+import time
 import cv2
 import sys
 import os
@@ -12,10 +13,9 @@ def candidate():
     for w_r in range(11):
         for w_g in range(11):
             if w_r + w_g > 10:
-                continue
+                break
             else:
                 yield w_r/10, w_g/10, abs(round(1.0-w_r/10-w_g/10, 1))
-
 
 def plot(image, file):
     return cv2.imwrite(file, image)
@@ -136,14 +136,18 @@ class JointBilateralFilter:
                     # for self bilateral (rgb image)
                     center_value = self.image[y][x]
 
-                    power = (self.image[y_bottom:y_top, x_left:x_right, :] - center_value)**2
-                    h_range = np.exp(-power / (2 * (self.sigma_r ** 2)))
+                    power_b = (self.image[y_bottom:y_top, x_left:x_right, 0] - center_value[0]) ** 2
+                    power_g = (self.image[y_bottom:y_top, x_left:x_right, 1] - center_value[1]) ** 2
+                    power_r = (self.image[y_bottom:y_top, x_left:x_right, 2] - center_value[2]) ** 2
+                    h_range_b = np.exp(-power_b / (2 * (self.sigma_r ** 2)))
+                    h_range_g = np.exp(-power_g / (2 * (self.sigma_r ** 2)))
+                    h_range_r = np.exp(-power_r / (2 * (self.sigma_r ** 2)))
 
                     # add together
                     im = self.image[y_bottom:y_top, x_left:x_right]
-                    multi_b = np.multiply(h_space, h_range[:, :, 0])
-                    multi_g = np.multiply(h_space, h_range[:, :, 1])
-                    multi_r = np.multiply(h_space, h_range[:, :, 2])
+                    multi_b = np.multiply(h_space, h_range_b)
+                    multi_g = np.multiply(h_space, h_range_g)
+                    multi_r = np.multiply(h_space, h_range_r)
 
                     filtered[y_bottom:y_top, x_left:x_right, 0] += np.multiply(multi_b, im[:, :, 0]) / np.sum(multi_b)
                     filtered[y_bottom:y_top, x_left:x_right, 1] += np.multiply(multi_g, im[:, :, 1]) / np.sum(multi_g)
@@ -216,15 +220,18 @@ def main(args):
         for sigma_s in [1, 2, 3]:
             for sigma_r in [0.05, 0.1, 0.2]:
                 print("Progress: sigma_s={}, sigma_r={}".format(sigma_s, sigma_r))
+                start = time.time()
                 bilateral_filter.sigma_s = sigma_s
                 bilateral_filter.sigma_r = sigma_r
                 bilateral_filter.filtered_image_gen()
                 bilateral_filter.vote()
                 bilateral_filter.print_result()
+                print("Time Elapsed:", time.time() - start)
                 print("===========================================================")
 
         bilateral_filter.plot_result(os.path.join(args.output,
                                                   os.path.splitext(os.path.basename(args.input))[0] + '_vote.png'))
+        print("Done!")
 
     else:
         raise NotImplementedError("Please specify the mode \"a\" for advanced or \"c\" for conventional method.")
