@@ -26,6 +26,5 @@
                               [-o (output directory)]
     ```
     
-###Results 
-   
-* Please refer to the directory [advanced](https://github.com/fanoping/Computer-Vision/tree/master/hw1/advanced), files are named by chosen sigma_r and sigma_s.
+* Results 
+   * Please refer to the directory [advanced](https://github.com/fanoping/Computer-Vision/tree/master/hw1/advanced), files are named by chosen sigma_r and sigma_s.
