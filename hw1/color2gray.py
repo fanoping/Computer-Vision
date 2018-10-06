@@ -93,10 +93,9 @@ class JointBilateralFilter:
             sys.stdout.write('\033[K')
 
             y = w_r * self.image[:, :, 2] + w_g * self.image[:, :, 1] + w_b * self.image[:, :, 0]
-            y = y / 255.0
             filtered = self.__filter(guide=y)
             if self.args.plot:
-                filtered = filtered * 255.0
+                filtered *= 255.0
                 plot(filtered, os.path.join(filename, "w_r_{}_w_g_{}_w_b_{}.png".format(w_r, w_g, w_b)))
 
             pos = Position(w_r, w_g, w_b)
@@ -123,8 +122,7 @@ class JointBilateralFilter:
                 # for single-channel image
                 if guide is not None:
                     center_value = guide[y][x]
-
-                    power = (self.image[y_bottom:y_top, x_left:x_right] - center_value) ** 2
+                    power = (guide[y_bottom:y_top, x_left:x_right] - center_value) ** 2
                     h_range = np.exp(-power / (2 * (self.sigma_r ** 2)))
 
                     # add together
@@ -181,7 +179,7 @@ class JointBilateralFilter:
 
     def plot_result(self, filename):
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.gca(projection='3d')
 
         ax.set_xlabel("w_r")
         ax.set_ylabel("w_g")
@@ -189,16 +187,17 @@ class JointBilateralFilter:
 
         x, y, z, v = [], [], [], []
         for pos, _ in self.joint_bilateral_image.items():
-            x.extend(pos.w_r)
-            y.extend(pos.w_g)
-            z.extend(pos.w_b)
-            v.extend(pos.votes)
+            x.append(pos.w_r)
+            y.append(pos.w_g)
+            z.append(pos.w_b)
+            v.append(pos.votes)
 
         p = ax.scatter(x, y, z, c=v, cmap=cm.YlOrRd, s=30, vmin=0, vmax=9)
         for xs, ys, zs, vs in zip(x, y, z, v):
             ax.text(xs, ys, zs, vs, fontsize=8)
         cb = plt.colorbar(p)
         cb.set_label("votes")
+        ax.view_init(30, 60)
         plt.savefig(fname=filename)
 
 
