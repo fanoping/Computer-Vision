@@ -90,7 +90,7 @@ class JointBilateralFilter:
 
         # candidates (joint bilateral image)
         for w_r, w_g, w_b in candidate():
-            print("Filtered image: w_r:{} w_g:{} w_b:{}".format(w_r, w_g, w_b), end='\r')
+            print("Joint Bilateral Filtered Image: w_r:{} w_g:{} w_b:{}".format(w_r, w_g, w_b), end='\r')
             sys.stdout.write('\033[K')
 
             y = w_r * self.image[:, :, 2] + w_g * self.image[:, :, 1] + w_b * self.image[:, :, 0]
@@ -206,18 +206,21 @@ class JointBilateralFilter:
         plt.savefig(fname=filename)
 
     def topn_result(self, n):
-        top_n_pos = sorted(self.joint_bilateral_image.items(), key=lambda kv: kv[0].votes, reverse=True)
+        top_n_pos = [k for k, _ in self.joint_bilateral_image.items()]
+        top_n_pos = sorted(top_n_pos, key=lambda k: k.votes, reverse=True)
         top_n_pos = top_n_pos[:n]
 
         print("Top {} positions: (RGB order)")
         for i, pos in enumerate(top_n_pos):
-            print("\t[{}]: ({}, {}, {}) votes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, pos.votes))
+            print("[{}]:\t({}, {}, {})\tvotes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, k.votes))
             if self.args.plot:
                 filename = os.path.splitext(os.path.basename(self.args.input))[0] + '_y' + str(i) + '.png'
                 if not os.path.exists(os.path.join(self.args.output, "results")):
                     os.mkdir(os.path.join(self.args.output, "results"))
 
-                plot(self.joint_bilateral_image[pos] * 255.0,
+                output = pos.w_r * self.image[:, :, 2] + pos.w_g * self.image[:, :, 1] + pos.w_b * self.image[:, :, 0]
+                output = output * 255.0
+                plot(np.expand_dims(output, axis=2),
                      os.path.join(self.args.output, "results", filename))
 
 
