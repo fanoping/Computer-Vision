@@ -17,6 +17,7 @@ def candidate():
             else:
                 yield w_r/10, w_g/10, abs(round(1.0-w_r/10-w_g/10, 1))
 
+
 def plot(image, file):
     return cv2.imwrite(file, image)
 
@@ -204,6 +205,21 @@ class JointBilateralFilter:
         ax.view_init(30, 60)
         plt.savefig(fname=filename)
 
+    def topn_result(self, n):
+        top_n_pos = sorted(self.joint_bilateral_image.items(), key=lambda kv: kv[0].votes, reverse=True)
+        top_n_pos = top_n_pos[:n]
+
+        print("Top {} positions: (RGB order)")
+        for i, pos in enumerate(top_n_pos):
+            print("\t[{}]: ({}, {}, {}) votes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, pos.votes))
+            if self.args.plot:
+                filename = os.path.splitext(os.path.basename(self.args.input))[0] + '_y' + str(i) + '.png'
+                if not os.path.exists(os.path.join(self.args.output, "results")):
+                    os.mkdir(os.path.join(self.args.output, "results"))
+
+                plot(self.joint_bilateral_image[pos] * 255.0,
+                     os.path.join(self.args.output, "results", filename))
+
 
 def main(args):
     image = cv2.imread(os.path.join(args.input))  # BGR image
@@ -231,6 +247,7 @@ def main(args):
 
         bilateral_filter.plot_result(os.path.join(args.output,
                                                   os.path.splitext(os.path.basename(args.input))[0] + '_vote.png'))
+        bilateral_filter.topn_result(n=3)
         print("Done!")
 
     else:
