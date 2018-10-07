@@ -212,9 +212,9 @@ class JointBilateralFilter:
 
         print("Top {} positions: (RGB order)")
         for i, pos in enumerate(top_n_pos):
-            print("[{}]:\t({}, {}, {})\tvotes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, k.votes))
+            print("[{}]:\t({}, {}, {})\tvotes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, pos.votes))
             if self.args.plot:
-                filename = os.path.splitext(os.path.basename(self.args.input))[0] + '_y' + str(i) + '.png'
+                filename = os.path.splitext(os.path.basename(self.args.input))[0] + '_y' + str(i + 1) + '.png'
                 if not os.path.exists(os.path.join(self.args.output, "results")):
                     os.mkdir(os.path.join(self.args.output, "results"))
 
