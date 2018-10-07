@@ -1,6 +1,9 @@
 *.zip
+*.tgz
 .idea/
 .DS_Store
 __pycache/
 *.npy
 *.csv
+*.pages
+*.swp
