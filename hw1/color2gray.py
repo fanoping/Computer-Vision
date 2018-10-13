@@ -205,15 +205,15 @@ class JointBilateralFilter:
         ax.view_init(30, 60)
         plt.savefig(fname=filename)
 
-    def topn_result(self, n):
+    def topn_result(self, n, done=False):
         top_n_pos = [k for k, _ in self.joint_bilateral_image.items()]
         top_n_pos = sorted(top_n_pos, key=lambda k: k.votes, reverse=True)
         top_n_pos = top_n_pos[:n]
 
-        print("Top {} positions: (RGB order)")
+        print("Top {} positions: (RGB order)".format(n))
         for i, pos in enumerate(top_n_pos):
-            print("[{}]:\t({}, {}, {})\tvotes: {}".format(i, pos.w_r, pos.w_g, pos.w_b, pos.votes))
-            if self.args.plot:
+            print("[{}]:\t({}, {}, {})\tvotes: {}".format(i + 1, pos.w_r, pos.w_g, pos.w_b, pos.votes))
+            if done:
                 filename = os.path.splitext(os.path.basename(self.args.input))[0] + '_y' + str(i + 1) + '.png'
                 if not os.path.exists(os.path.join(self.args.output, "results")):
                     os.mkdir(os.path.join(self.args.output, "results"))
@@ -230,6 +230,8 @@ def main(args):
     # Conventional (BGR->YUV)
     if args.mode == "c":
         y = 0.299 * image[:, :, 2] + 0.587 * image[:, :, 1] + 0.114 * image[:, :, 0]
+        if not os.path.exists(args.output):
+            os.mkdir(args.output)
         filename = os.path.splitext(os.path.basename(args.input))[0] + '_y.png'
         plot(np.expand_dims(y, axis=2), os.path.join(args.output, filename))
 
@@ -245,14 +247,14 @@ def main(args):
                 bilateral_filter.filtered_image_gen()
                 bilateral_filter.vote()
                 bilateral_filter.print_result()
+                bilateral_filter.topn_result(n=3)
                 print("Time Elapsed:", time.time() - start)
                 print("===========================================================")
 
         bilateral_filter.plot_result(os.path.join(args.output,
                                                   os.path.splitext(os.path.basename(args.input))[0] + '_vote.png'))
-        bilateral_filter.topn_result(n=3)
+        bilateral_filter.topn_result(n=3, done=True)
         print("Done!")
-
     else:
         raise NotImplementedError("Please specify the mode \"a\" for advanced or \"c\" for conventional method.")
 
