@@ -12,7 +12,8 @@
         python3 ...
      ```
 
-## Advanced Color Conversion
+## Object Recognition using CNN
+* Implement simple CNN for recognizing MNIST dataset
 * Usage
     ```
         python3 ...
