@@ -94,6 +94,7 @@ class Trainer:
 
     def train(self, valid=True):
         for epoch in range(1, self.epoch+1):
+            self.model.train()
             total_loss, total_acc = 0, 0
             for batch_idx, (image, label) in enumerate(self.train_dataloader):
                 image = torch.tensor(image, dtype=torch.float, device=self.device)
