@@ -15,6 +15,13 @@
 ## Object Recognition using CNN
 * Implement simple CNN for recognizing MNIST dataset
 * Usage
+    * For training
     ```
-        python3 ...
+        python3 hw2-3_train.py [image directory] 
     ```
+    * For testing
+    ```
+        python3 hw2-3_test.py [image directory] [output csv] 
+    ```
+* Learning curve
+![learning curve](https://github.com/fanoping/Computer-Vision/tree/master/hw2/curve.png)

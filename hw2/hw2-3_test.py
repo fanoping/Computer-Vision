@@ -35,6 +35,11 @@ def main(directory, output_csv):
     model = CNN().to(device)
     model.load_state_dict(checkpoint['state_dict'])
 
+    print("Selected checkpoint training acc: {:.6f} validation acc: {:.6f}".format(
+        checkpoint['accuracy'][checkpoint['epoch'] - 1],
+        checkpoint['val_accuracy'][checkpoint['epoch'] - 1])
+    )
+
     with torch.no_grad():
         model.eval()
         with open(output_csv, "w") as f:
