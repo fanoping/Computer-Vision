@@ -4,7 +4,6 @@ from torch.optim import Adam
 import torch.nn as nn
 import torch
 import numpy as np
-import argparse
 import sys
 import os
 
@@ -185,20 +184,14 @@ class Trainer:
             self.max_acc = current_acc
 
 
-def main(args):
-    trainer = Trainer(directory=args.directory,
-                      epoch=args.epoch,
-                      batch_size=args.batch_size)
-    trainer.train()
+def main(directory):
+    trainer = Trainer(directory=directory,
+                      epoch=100,
+                      batch_size=64)
+    trainer.train(valid=True)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    # file config
-    parser.add_argument('-d', '--directory', default='hw2_data/hw2-3_data')
-    # training config
-    parser.add_argument('--batch-size', default=128)
-    parser.add_argument('--epoch', default=100)
-    parser.add_argument('--valid', action='store_true')
-
-    main(parser.parse_args())
+    # file directory from argv
+    directory = sys.argv[1]
+    main(directory)
