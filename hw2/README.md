@@ -25,4 +25,4 @@
     ```
 * Learning curve
 
-![learning curve](https://github.com/fanoping/Computer-Vision/tree/master/hw2/curve.png)
+    ![learning curve](https://github.com/fanoping/Computer-Vision/blob/master/hw2/curve.png)
