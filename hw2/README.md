@@ -24,4 +24,5 @@
         python3 hw2-3_test.py [image directory] [output csv] 
     ```
 * Learning curve
+
 ![learning curve](https://github.com/fanoping/Computer-Vision/tree/master/hw2/curve.png)
