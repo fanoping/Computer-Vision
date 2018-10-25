@@ -156,7 +156,7 @@ class Trainer:
             print('val_loss: {:.6f} val_acc: {:.6f}'.format(total_loss / len(self.valid_dataloader),
                                                             total_acc / len(self.valid_dataloader)))
             self.val_loss_list.append(total_loss / len(self.valid_dataloader))
-            self.val_acc_list.append(total_acc / len(self.train_dataloader))
+            self.val_acc_list.append(total_acc / len(self.valid_dataloader))
 
         return total_loss / len(self.valid_dataloader), total_acc / len(self.valid_dataloader)
 
