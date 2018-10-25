@@ -51,16 +51,16 @@ def main(im_directory):
     print(len(train_images), "train images and", len(test_images), "test images loaded!")
 
     eigen, weights, mu = manual_pca(train_images)
-    plot(mu.reshape(im_shape), "mean.png")
+    # plot(mu.reshape(im_shape), "mean.png")
 
     # eigenfaces
-    for i in range(5):
-        plot(eigen[:, i].reshape(im_shape), "eigenface_{}.png".format(i + 1))
+    # for i in range(5):
+    #    plot(eigen[:, i].reshape(im_shape), "eigenface_{}.png".format(i + 1))
 
     # reconstruct person_8_image_6
     for n in [5, 50, 150, len(train_images)]:
         recon = reconstruct(54, eigen, weights, mu, n)
-        plot(recon.reshape(im_shape), "reconstruct_{}.png".format(n))
+    #    plot(recon.reshape(im_shape), "reconstruct_{}.png".format(n))
         error = mse(recon, train_images[54])
         print("MSE with n eigenface:", error)
 
