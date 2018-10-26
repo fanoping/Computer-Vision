@@ -5,6 +5,13 @@
 * PCA and LDA
 * Object Recognition using CNN
 
+## Requirement
+* Python 3.6.4
+* torch 0.4.1
+* scipy 1.0.1
+* numpy 1.15.2
+* matplotlib 3.0.0
+
 ## PCA and LDA
 * Implement PCA and LDA manually
 * PCA Usage
