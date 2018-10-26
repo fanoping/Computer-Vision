@@ -1,5 +1,6 @@
 from scipy.misc import imread, imsave
 from sklearn.manifold import TSNE
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -40,12 +41,14 @@ def tsne_visual(weight, n, label):
     embedded = tsne.fit_transform(weight)
 
     plt.figure(figsize=(12, 12))
+    colors = iter(cm.rainbow(np.linspace(0, 1, 40)))
     for lab in np.unique(label):
+        c = next(colors)
         mask = label == lab
-        plt.scatter(embedded[mask,0], embedded[mask,1], label=lab)
+        plt.scatter(embedded[mask, 0], embedded[mask, 1], s=30, c=c, label=lab)
     plt.legend(loc="best")
-
     plt.savefig("tsne.png")
+
 
 def main(im_directory, testing_image, output_testing_image):
     # read image
@@ -83,10 +86,10 @@ def main(im_directory, testing_image, output_testing_image):
         recon = reconstruct(54, eigen, weights, mu, n)
     #    plot(recon.reshape(im_shape), "reconstruct_{}.png".format(n))
         error = mse(recon, train_images[54])
-        print("MSE with {:3} eigenface:\t{}".format(n, error))
+        print("MSE with {:3} eigenfaces:\t{}".format(n, error))
 
     # TSNE visualize
-    #tsne_visual(weights, 100, train_labels)
+    # tsne_visual(weights, 100, train_labels)
 
     # reconstruct testing images
     print("Testing Image:", testing_image)
@@ -94,11 +97,12 @@ def main(im_directory, testing_image, output_testing_image):
 
     testing_image = imread(testing_image).reshape(-1,)
     mean = testing_image - mu
-    embed = np.dot(mean, eigen[:,:])
-    inverse = np.dot(embed, eigen[:,:].T) + mu
+    embed = np.dot(mean, eigen[:, :])
+    inverse = np.dot(embed, eigen[:, :].T) + mu
     plot(inverse.reshape(im_shape), output_testing_image)
 
     print("Done!")
+
 
 if __name__ == '__main__':
     directory = sys.argv[1]
