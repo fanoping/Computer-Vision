@@ -7,9 +7,9 @@
 
 ## PCA and LDA
 * Implement PCA and LDA manually
-* Usage
+* PCA Usage
      ```
-        python3 ...
+        python3 hw2-2_pca.py [whole dataset] [input test image] [output test image]
      ```
 
 ## Object Recognition using CNN
