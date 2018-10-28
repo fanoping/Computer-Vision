@@ -35,11 +35,8 @@ def reconstruct(img_idx, u, weight, mu, n):
     return recon
 
 
-def tsne_visual(weight, n, label):
+def tsne_visual(weight, label):
     tsne = TSNE(n_components=2, random_state=30, verbose=1, n_iter=2500)
-
-    # reduce to dim 100
-    weight = weight[:, :n]
     embedded = tsne.fit_transform(weight)
 
     plt.figure(figsize=(12, 12))
@@ -49,7 +46,8 @@ def tsne_visual(weight, n, label):
         mask = label == lab
         plt.scatter(embedded[mask, 0], embedded[mask, 1], s=30, c=c, label=lab)
     plt.legend(loc="best")
-    plt.savefig("tsne.png")
+    plt.title('t-SNE for PCA embedding')
+    plt.savefig("tsne_pca.png")
 
 
 def main(im_directory, testing_image, output_testing_image):
@@ -90,8 +88,10 @@ def main(im_directory, testing_image, output_testing_image):
         error = mse(recon, train_images[54])
         print("MSE with {:3} eigenfaces:\t{}".format(n, error))
 
-    # TSNE visualize
-    # tsne_visual(weights, 100, train_labels)
+    # t-SNE visualize
+    mean = train_images - mu
+    embed = np.dot(mean, eigen[:, :100])
+    tsne_visual(embed, train_labels)
 
     # reconstruct testing images
     print("Testing Image:", testing_image)
@@ -114,7 +114,7 @@ def main(im_directory, testing_image, output_testing_image):
             embed = np.dot(mean, eigen[:, :n])
             knn = KNeighborsClassifier(n_neighbors=k)
             scores = cross_val_score(knn, embed, test_labels, cv=3, scoring="accuracy")
-            print("K = {}, N = {}\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
+            print("K = {}, N = {}:\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
                 k, n, scores[0], scores[1], scores[2])
             )
 

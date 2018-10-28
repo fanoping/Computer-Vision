@@ -45,6 +45,7 @@ def lda(embedded_images):
 
     inv_sw = np.linalg.inv(s_w)
     matrix = np.multiply(inv_sw, s_b)
+    print(matrix.shape)
 
     lda_mu = matrix.mean(axis=0)
     lda_ma = matrix - lda_mu
@@ -59,11 +60,8 @@ def reconstruct(img_idx, u, weight, mu, n):
     return recon
 
 
-def tsne_visual(weight, n, label):
+def tsne_visual(weight, label):
     tsne = TSNE(n_components=2, random_state=30, verbose=1, n_iter=2500)
-
-    # reduce to dim 100
-    weight = weight[:, :n]
     embedded = tsne.fit_transform(weight)
 
     plt.figure(figsize=(12, 12))
@@ -73,7 +71,8 @@ def tsne_visual(weight, n, label):
         mask = label == lab
         plt.scatter(embedded[mask, 0], embedded[mask, 1], s=30, c=c, label=lab)
     plt.legend(loc="best")
-    plt.savefig("tsne.png")
+    plt.title('t-SNE for LDA embedding')
+    plt.savefig("tsne_lda.png")
 
 
 def main(im_directory, output_testing_image):
@@ -108,6 +107,13 @@ def main(im_directory, output_testing_image):
     eigen_lda, weights_lda, mu_lda, matrix_lda = lda(embed)
     recon = mu_lda + np.dot(weights_lda[:, 0], eigen_lda[:, 0].T)
 
+    # t-SNE visualize
+    # mean = train_images - mu
+    # embed = np.dot(mean, eigen[:, :240])
+    # embed_mean = embed - mu_lda
+    # embed_lda = np.dot(embed_mean, eigen_lda[:, :30])
+    # tsne_visual(embed_lda, train_labels)
+
     print("Reconstructed Image File:", output_testing_image)
     inverse = np.dot(recon, eigen[:, :240].T) + mu
     plot(inverse.reshape(im_shape), output_testing_image)
@@ -125,7 +131,7 @@ def main(im_directory, output_testing_image):
             embed_lda = np.dot(embed_mean, eigen_lda[:, :n])
             knn = KNeighborsClassifier(n_neighbors=k)
             scores = cross_val_score(knn, embed_lda, test_labels, cv=3, scoring="accuracy")
-            print("K = {}, N = {}\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
+            print("K = {}, N = {}:\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
                 k, n, scores[0], scores[1], scores[2])
             )
 
