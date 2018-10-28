@@ -1,5 +1,7 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from scipy.misc import imread, imsave
 from sklearn.manifold import TSNE
 from matplotlib import cm
@@ -105,7 +107,11 @@ def main(im_directory, output_testing_image):
     embed = np.dot(mean, eigen[:, :240])   # project onto (N-C) eigenvectors N = 280, C = 40
 
     eigen_lda, weights_lda, mu_lda, matrix_lda = lda(embed)
-    recon = mu_lda + np.dot(weights_lda[:, 0], eigen_lda[:, 0].T)
+
+    for i in range(5):
+        fisher = mu_lda + np.dot(weights_lda[:, i], eigen_lda[:, i].T)
+        inv = np.dot(fisher, eigen[:, :240].T) + mu
+        plot(inv.reshape(im_shape), "result/fisherface_{}.png".format(i+1))
 
     # t-SNE visualize
     # mean = train_images - mu
@@ -115,6 +121,7 @@ def main(im_directory, output_testing_image):
     # tsne_visual(embed_lda, train_labels)
 
     print("Reconstructed Image File:", output_testing_image)
+    recon = mu_lda + np.dot(weights_lda[:, 0], eigen_lda[:, 0].T)
     inverse = np.dot(recon, eigen[:, :240].T) + mu
     plot(inverse.reshape(im_shape), output_testing_image)
 
