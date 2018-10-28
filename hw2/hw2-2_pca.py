@@ -1,3 +1,5 @@
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score
 from scipy.misc import imread, imsave
 from sklearn.manifold import TSNE
 from matplotlib import cm
@@ -100,6 +102,21 @@ def main(im_directory, testing_image, output_testing_image):
     embed = np.dot(mean, eigen[:, :])
     inverse = np.dot(embed, eigen[:, :].T) + mu
     plot(inverse.reshape(im_shape), output_testing_image)
+
+    # KNN result
+    k_near = [1, 3, 5]
+    dim = [3, 10, 39]
+
+    print("Cross Validation Score by KNN")
+    for k in k_near:
+        for n in dim:
+            mean = test_images - mu
+            embed = np.dot(mean, eigen[:, :n])
+            knn = KNeighborsClassifier(n_neighbors=k)
+            scores = cross_val_score(knn, embed, test_labels, cv=3, scoring="accuracy")
+            print("K = {}, N = {}\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
+                k, n, scores[0], scores[1], scores[2])
+            )
 
     print("Done!")
 
