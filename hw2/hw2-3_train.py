@@ -27,6 +27,7 @@ class MnistDataset(Dataset):
         for file in files:
             for imagefile in sorted(os.listdir(os.path.join(base, file))):
                 image = imread(os.path.join(base, file, imagefile))
+                image = image / 255.0
                 label = int(file[-1])
 
                 self.image.append(np.expand_dims(image, axis=0))
