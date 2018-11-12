@@ -1,7 +1,5 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from scipy.misc import imread, imsave
 from sklearn.manifold import TSNE
 from matplotlib import cm
@@ -46,15 +44,11 @@ def lda(embedded_images):
         s_b += sb_i
 
     inv_sw = np.linalg.inv(s_w)
-    matrix = np.multiply(inv_sw, s_b)
-    print(matrix.shape)
+    matrix = np.dot(inv_sw, s_b)
+    _, eigvector = np.linalg.eig(matrix)
+    eigvector = np.real(eigvector)
 
-    lda_mu = matrix.mean(axis=0)
-    lda_ma = matrix - lda_mu
-    u, s, v = np.linalg.svd(lda_ma.T, full_matrices=False)
-    weights = np.dot(lda_ma, u)
-
-    return u, weights, lda_mu, matrix
+    return eigvector[:, :39]
 
 
 def reconstruct(img_idx, u, weight, mu, n):
@@ -63,7 +57,7 @@ def reconstruct(img_idx, u, weight, mu, n):
 
 
 def tsne_visual(weight, label):
-    tsne = TSNE(n_components=2, random_state=30, verbose=1, n_iter=2500)
+    tsne = TSNE(n_components=2, random_state=10, verbose=1)
     embedded = tsne.fit_transform(weight)
 
     plt.figure(figsize=(12, 12))
@@ -103,45 +97,44 @@ def main(im_directory, output_testing_image):
 
     eigen, weights, mu = pca(train_images)
 
-    mean = train_images - mu
-    embed = np.dot(mean, eigen[:, :240])   # project onto (N-C) eigenvectors N = 280, C = 40
+    embed = train_images - mu
+    embed = np.dot(embed, eigen[:, :240])   # project onto (N-C) eigenvectors N = 280, C = 40
+    eigen_lda = lda(embed)
 
-    eigen_lda, weights_lda, mu_lda, matrix_lda = lda(embed)
+    # for i in range(5):
+    #    fisher = np.dot(eigen[:, :240], eigen_lda[:, i])
+    #    plot(fisher.reshape(im_shape), "result/fisherface_{}.png".format(i+1))
 
-    for i in range(5):
-        fisher = mu_lda + np.dot(weights_lda[:, i], eigen_lda[:, i].T)
-        inv = np.dot(fisher, eigen[:, :240].T) + mu
-        plot(inv.reshape(im_shape), "result/fisherface_{}.png".format(i+1))
+    fisher = np.dot(eigen[:, :240], eigen_lda[:, 0])
+    plot(fisher.reshape(im_shape), output_testing_image)
 
     # t-SNE visualize
     # mean = train_images - mu
-    # embed = np.dot(mean, eigen[:, :240])
-    # embed_mean = embed - mu_lda
-    # embed_lda = np.dot(embed_mean, eigen_lda[:, :30])
-    # tsne_visual(embed_lda, train_labels)
-
-    print("Reconstructed Image File:", output_testing_image)
-    recon = mu_lda + np.dot(weights_lda[:, 0], eigen_lda[:, 0].T)
-    inverse = np.dot(recon, eigen[:, :240].T) + mu
-    plot(inverse.reshape(im_shape), output_testing_image)
+    # train_embed = np.dot(mean, eigen[:, :240])
+    # train_embed_lda = np.dot(train_embed, eigen_lda[:, :30])
+    # tsne_visual(train_embed_lda, train_labels)
 
     # KNN result
     k_near = [1, 3, 5]
     dim = [3, 10, 39]
 
-    print("Cross Validation Score by KNN")
+    print("Cross Validation Score by k-NN")
     for k in k_near:
         for n in dim:
-            mean = test_images - mu
-            embed = np.dot(mean, eigen[:, :240])
-            embed_mean = embed - mu_lda
-            embed_lda = np.dot(embed_mean, eigen_lda[:, :n])
+            mean = train_images - mu
+            embedded = np.dot(mean, eigen[:, :240])
+            embedded_lda = np.dot(embedded, eigen_lda[:, :n])
             knn = KNeighborsClassifier(n_neighbors=k)
-            scores = cross_val_score(knn, embed_lda, test_labels, cv=3, scoring="accuracy")
+            knn.fit(embedded_lda, train_labels)
+            scores = cross_val_score(knn, embedded_lda, train_labels, cv=3, scoring="accuracy")
             print("K = {}, N = {}:\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
-                k, n, scores[0], scores[1], scores[2])
+                k, n, scores[0], scores[1], scores[2]), end=" "
             )
 
+            test_m = test_images - mu
+            test_em = np.dot(test_m, eigen[:, :240])
+            test_em_lda = np.dot(test_em, eigen_lda[:, :n])
+            print("Test score: {:.5f}".format(knn.score(test_em_lda, test_labels)))
 
 if __name__ == '__main__':
     directory = sys.argv[1]
