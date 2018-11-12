@@ -18,6 +18,10 @@
      ```
         python3 hw2-2_pca.py [whole dataset] [input test image] [output test image]
      ```
+* LDA Usage
+     ```
+        python3 hw2-2_pca.py [whole dataset] [output first fisherface]
+     ```
 
 ## Object Recognition using CNN
 * Implement simple CNN for recognizing MNIST dataset
@@ -32,4 +36,4 @@
     ```
 * Learning curve
 
-    ![learning curve](https://github.com/fanoping/Computer-Vision/blob/master/hw2/curve.png)
+    ![learning curve](https://github.com/fanoping/Computer-Vision/blob/master/hw2/result/curve.png)
