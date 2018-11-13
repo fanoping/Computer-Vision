@@ -45,7 +45,7 @@ def main(directory, output_csv):
         with open(output_csv, "w") as f:
             s = csv.writer(f, delimiter=',', lineterminator='\n')
             s.writerow(["id", "label"])
-            for idx, imagefile in enumerate(os.listdir(directory)):
+            for imagefile in sorted(os.listdir(directory)):
                 image = imread(os.path.join(directory, imagefile))
                 image = np.expand_dims(image, axis=0)
                 image = torch.tensor(image, dtype=torch.float, device=device).unsqueeze(0)
@@ -53,6 +53,7 @@ def main(directory, output_csv):
                 output = model(image)
                 result = torch.max(output, dim=1)[1]
 
+                idx = os.path.splitext(os.path.basename(imagefile))[0]
                 s.writerow([idx, result.item()])
 
 
