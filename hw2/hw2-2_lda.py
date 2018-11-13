@@ -125,12 +125,11 @@ def main(im_directory, output_testing_image):
             embedded = np.dot(mean, eigen[:, :240])
             embedded_lda = np.dot(embedded, eigen_lda[:, :n])
             knn = KNeighborsClassifier(n_neighbors=k)
-            knn.fit(embedded_lda, train_labels)
             scores = cross_val_score(knn, embedded_lda, train_labels, cv=3, scoring="accuracy")
             print("K = {}, N = {}:\tcross validation acc = {:.3f} / {:.3f} / {:.3f}".format(
                 k, n, scores[0], scores[1], scores[2]), end=" "
             )
-
+            knn.fit(embedded_lda, train_labels)
             test_m = test_images - mu
             test_em = np.dot(test_m, eigen[:, :240])
             test_em_lda = np.dot(test_em, eigen_lda[:, :n])

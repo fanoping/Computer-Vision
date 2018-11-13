@@ -18,10 +18,13 @@
      ```
         python3 hw2-2_pca.py [whole dataset] [input test image] [output test image]
      ```
+     refer to results in directory `result`
+     
 * LDA Usage
      ```
         python3 hw2-2_pca.py [whole dataset] [output first fisherface]
      ```
+     refer to results in directory `result`
 
 ## Object Recognition using CNN
 * Implement simple CNN for recognizing MNIST dataset

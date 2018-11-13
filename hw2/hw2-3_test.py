@@ -30,7 +30,7 @@ class CNN(nn.Module):
 
 
 def main(directory, output_csv):
-    checkpoint = torch.load('checkpoints/best_checkpoint.pth.tar')
+    checkpoint = torch.load('best_checkpoint.pth.tar', map_location=lambda storage, loc: storage)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = CNN().to(device)
     model.load_state_dict(checkpoint['state_dict'])

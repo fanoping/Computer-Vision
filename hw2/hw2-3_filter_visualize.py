@@ -36,17 +36,20 @@ class CNNFilterVisualization:
 
         self.selected_layer = 0
         self.selected_filter = 0
-        self.init_image = np.zeros((1, 28, 28))
 
-    def visualize(self, selected_layer, selected_filter):
+    def gradient_ascend(self, selected_layer, selected_filter):
+        print(selected_layer, selected_filter)
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
-        self.process = torch.tensor(self.init_image, dtype=torch.float, device=self.device).unsqueeze(0)
+        self.process = torch.tensor(np.zeros((1, 28, 28)),
+                                    dtype=torch.float,
+                                    device=self.device).unsqueeze(0)
+        self.process.requires_grad = True
 
         # model optimizer
-        optimizer = Adam(params=[self.process], lr=0.001, weight_decay=1e-6)
+        optimizer = Adam(params=[self.process], lr=0.1, weight_decay=1e-6)
 
-        for idx in range(1, 101):
+        for idx in range(1, 1001):
             optimizer.zero_grad()
             x = self.process
             # get to the selected layer
@@ -60,17 +63,29 @@ class CNNFilterVisualization:
             loss.backward()
             optimizer.step()
 
-            print(self.process)
-            input()
             print("Epoch {} loss: {:.6f}".format(idx, loss.item()))
-            imsave("ep{}_layer{}_filter{}.png".format(idx, self.selected_layer, self.selected_filter),
-                   (self.process.squeeze().cpu().numpy()))
+
+        self.process = self.process.squeeze().cpu().detach().numpy()
+        self.process -= self.process.mean()
+        self.process /= self.process.std()
+        self.process *= 0.1
+
+        self.process += 0.5
+        self.process = np.clip(self.process, 0, 1)
+        self.process *= 255
+
+        imsave("layer{}_filter{}.png".format(self.selected_layer, self.selected_filter), self.process)
+        print("Done!")
+        print()
+
 
 
 def main():
-    checkpoint = torch.load('checkpoints/best_checkpoint.pth.tar')
+    checkpoint = torch.load('best_checkpoint.pth.tar', map_location=lambda storage, loc: storage)
     visual = CNNFilterVisualization(checkpoint['state_dict'])
-    visual.visualize(1, 50)
+    for idx in [1, 2, 4, 8, 16, 32]:
+        visual.gradient_ascend(0, idx)
+        visual.gradient_ascend(3, idx)
 
 
 if __name__ == '__main__':
