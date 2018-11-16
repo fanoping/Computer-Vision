@@ -6,7 +6,7 @@
 * Bonus: Simple Augmented Reality
 
 ## Part 1: Estimate Homography
-* Simple apply homography matrix for projection
+* Simple apply **Homography Matrix** for projection
 * Reference (Wikipedia): [Homgraphy](https://en.wikipedia.org/wiki/Homography_(computer_vision))
 
 |    img1   |    img2   |   img3    |    img4   |   img5    |
@@ -18,7 +18,7 @@
 |![Time Square](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/times_square.jpg)|![Result](https://github.com/fanoping/Computer-Vision/blob/master/hw3/part1.png)|
 
 ## Part 2: Unwarp the QR code on the screen
-* Apply Backward Warping to get pixel information (by interpolation)
+* Apply **Backward Warping** to get pixel information (by interpolation)
 
 
 |  Source |  Result   |
