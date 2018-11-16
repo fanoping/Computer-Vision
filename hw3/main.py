@@ -131,7 +131,6 @@ def main():
     print("========Part 3========")
     img_front = cv2.imread('./input/crosswalk_front.jpg')
     # TODO: some magic
-    
     print("Plot part3.png...")
     # cv2.imwrite('part3.png', output3)
 
