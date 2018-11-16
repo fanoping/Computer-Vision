@@ -24,3 +24,10 @@
 |  Source |  Result   |
 | ------- | :-------: |
 |![Screen](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/screen.jpg)|![Result](https://github.com/fanoping/Computer-Vision/blob/master/hw3/part2.png)| 
+
+
+## Part 3: Estimate the 3D illusion
+* *To be updated...*
+
+## Bonus: Simple Augmented Reality
+* *To be updated...*
