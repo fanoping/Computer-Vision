@@ -11,7 +11,7 @@
 
 |    img1   |    img2   |   img3    |    img4   |   img5    |
 | :-------: | :-------: | :-------: | :-------: | :-------: |
-|![wu](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/wu.jpg)|![ding](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/ding.jpg)|![kp](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/kp.jpg)|![lee](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/lee.jpg)|
+|![wu](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/wu.jpg)|![ding](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/ding.jpg)|![yao](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/yao.jpg)|![kp](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/kp.jpg)|![lee](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/lee.jpg)|![wu](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/wu.jpg)|
 
 |  Source |   Result  |
 | ------- | :-------: |
