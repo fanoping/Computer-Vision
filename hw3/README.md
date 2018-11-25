@@ -27,7 +27,7 @@
 
 
 ## Part 3: Estimate the 3D illusion
-* Apply **Backward Warping** to get the top view of the cross walk (pixel interpolation is concerned)
+* Apply **Backward Warping** to get the top view of the cross walk (pixel-wise interpolation is concerned)
 * Discussion concerning the warping result is in the report.
 
 |  Source |  Result   |
