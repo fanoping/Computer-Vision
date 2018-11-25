@@ -86,53 +86,64 @@ def interpolate(src_img, new_x, new_y):
 
 
 def main():
+    part1, part2, part3 = False, True, False
+
     # Part 1
-    canvas = cv2.imread('./input/times_square.jpg')  # (1050, 1680, 3)
-    img1 = cv2.imread('./input/wu.jpg')              # (348, 348, 3)
-    img2 = cv2.imread('./input/ding.jpg')            # (960, 960, 3)
-    img3 = cv2.imread('./input/yao.jpg')             # (774, 774, 3)
-    img4 = cv2.imread('./input/kp.jpg')              # (900, 900, 3)
-    img5 = cv2.imread('./input/lee.jpg')             # (962, 1442, 3)
+    if part1:
+        print("========Part 1========")
+        canvas = cv2.imread('./input/times_square.jpg')  # (1050, 1680, 3)
+        img1 = cv2.imread('./input/wu.jpg')              # (348, 348, 3)
+        img2 = cv2.imread('./input/ding.jpg')            # (960, 960, 3)
+        img3 = cv2.imread('./input/yao.jpg')             # (774, 774, 3)
+        img4 = cv2.imread('./input/kp.jpg')              # (900, 900, 3)
+        img5 = cv2.imread('./input/lee.jpg')             # (962, 1442, 3)
 
-    corners1 = np.array([[818, 352], [884, 352], [818, 407], [885, 408]])
-    corners2 = np.array([[311, 14], [402, 150], [157, 152], [278, 315]])
-    corners3 = np.array([[364, 674], [430, 725], [279, 864], [369, 885]])
-    corners4 = np.array([[808, 495], [892, 495], [802, 609], [896, 609]])
-    corners5 = np.array([[1024, 608], [1118, 593], [1032, 664], [1134, 651]])
+        corners1 = np.array([[818, 352], [884, 352], [818, 407], [885, 408]])
+        corners2 = np.array([[311, 14], [402, 150], [157, 152], [278, 315]])
+        corners3 = np.array([[364, 674], [430, 725], [279, 864], [369, 885]])
+        corners4 = np.array([[808, 495], [892, 495], [802, 609], [896, 609]])
+        corners5 = np.array([[1024, 608], [1118, 593], [1032, 664], [1134, 651]])
 
-    # TODO: some magic
-    print("========Part 1========")
-    print("Transform ./input/wu.jpg...")
-    canvas = transform(img1, canvas, corners1)
-    print("Transform ./input/ding.jpg...")
-    canvas = transform(img2, canvas, corners2)
-    print("Transform ./input/yao.jpg...")
-    canvas = transform(img3, canvas, corners3)
-    print("Transform ./input/kp.jpg...")
-    canvas = transform(img4, canvas, corners4)
-    print("Transform ./input/lee.jpg...")
-    canvas = transform(img5, canvas, corners5)
-    print("Plot part1.png...")
-    cv2.imwrite('part1.png', canvas)
+        # TODO: some magic
+        print("Transform ./input/wu.jpg...")
+        canvas = transform(img1, canvas, corners1)
+        print("Transform ./input/ding.jpg...")
+        canvas = transform(img2, canvas, corners2)
+        print("Transform ./input/yao.jpg...")
+        canvas = transform(img3, canvas, corners3)
+        print("Transform ./input/kp.jpg...")
+        canvas = transform(img4, canvas, corners4)
+        print("Transform ./input/lee.jpg...")
+        canvas = transform(img5, canvas, corners5)
+        print("Plot part1.png...")
+        cv2.imwrite('part1.png', canvas)
 
     # Part 2
-    print("========Part 2========")
-    img = cv2.imread('./input/screen.jpg')  # 2000 * 1500
-    output = np.zeros((300, 300, 3))
-    # TODO: some magic
-    # find position first
-    print("Backward Warping ./input/screen.jpg...")
-    corners = np.array([[1041, 370], [1100, 396], [984, 552], [1036, 599]])
-    output = backward_warpping(img, output, corners)
-    print("Plot part2.png...")
-    cv2.imwrite('part2.png', output)
+    if part2:
+        print("========Part 2========")
+        img = cv2.imread('./input/screen.jpg')  # 2000 * 1500
+        output = np.zeros((300, 300, 3))
+
+        # find position first
+        print("Backward Warping ./input/screen.jpg...")
+        corners = np.array([[1041, 370], [1100, 396], [984, 552], [1036, 599]])
+        output = backward_warpping(img, output, corners)
+
+        print("Plot part2.png...")
+        cv2.imwrite('part2.png', output)
 
     # Part 3
-    print("========Part 3========")
-    img_front = cv2.imread('./input/crosswalk_front.jpg')
-    # TODO: some magic
-    print("Plot part3.png...")
-    # cv2.imwrite('part3.png', output3)
+    if part3:
+        print("========Part 3========")
+        img_front = cv2.imread('./input/crosswalk_front.jpg')   # 725 * 400
+        output_img = np.zeros((400, 400, 3))
+
+        print("Backward Warping ./input/crosswalk_front.jpg...")
+        corners = np.array([[160, 129], [563, 129], [0, 286], [723, 286]])
+        output_img = backward_warpping(img_front, output_img, corners)
+
+        print("Plot part3.png...")
+        cv2.imwrite('part3.png', output_img)
 
     print("======================")
     print("Process Done!")
