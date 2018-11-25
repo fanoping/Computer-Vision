@@ -27,7 +27,12 @@
 
 
 ## Part 3: Estimate the 3D illusion
-* *To be updated...*
+* Apply **Backward Warping** to get the top view of the cross walk (pixel interpolation is concerned)
+* Discussion concerning the warping result is in the report.
+
+|  Source |  Result   |
+| ------- | :-------: |
+|![Screen](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/crosswalk_front.jpg)|![Result](https://github.com/fanoping/Computer-Vision/blob/master/hw3/part3.png)| 
 
 ## Bonus: Simple Augmented Reality
 * *To be updated...*
