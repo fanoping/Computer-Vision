@@ -5,6 +5,13 @@
 * Part 3: Estimate the 3D illusion
 * Bonus: Simple Augmented Reality
 
+## Usage
+Simply execute `main.py` to generate image for each part.
+    
+   ```
+        python3 main.py
+   ```
+    
 ## Part 1: Estimate Homography
 * Simple apply **Homography Matrix** for projection
 * Reference (Wikipedia): [Homgraphy](https://en.wikipedia.org/wiki/Homography_(computer_vision))
@@ -35,4 +42,33 @@
 |![Screen](https://github.com/fanoping/Computer-Vision/blob/master/hw3/input/crosswalk_front.jpg)|![Result](https://github.com/fanoping/Computer-Vision/blob/master/hw3/part3.png)| 
 
 ## Bonus: Simple Augmented Reality
-* *To be updated...*
+* Apply **Feature Detection** and **Projective Geometry**
+* Using **SIFT** as feature points detector
+* Calculate **Homography Matrix**
+* Usage
+    ```
+        python3 simple_ar.py -v [video]
+                             -m [marker]
+                             -i [input image]
+                             -o [output video]
+                             -d [for detect marker position]
+    ```
+* Example Usage
+    * Output an projected image in the video (**Default**)
+        ```
+            python3 simple_ar.py -v ./input/ar_marker.mp4
+                                 -m ./input/marker.png
+                                 -i ./input/kp.jpg
+                                 -o output_kp.mp4
+        ```
+        Example output: `output_kp.mp4`
+        
+    * Output the detected position in the video
+        ```
+            python3 simple_ar.py -v ./input/ar_marker.mp4
+                                 -m ./input/marker.png
+                                 -o detectlines.mp4
+                                 -d
+        ```
+        Example output: `detectlines.mp4`
+        
