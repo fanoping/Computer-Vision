@@ -54,7 +54,7 @@ Simply execute `main.py` to generate image for each part.
                              -d [for detect marker position]
     ```
 * Example Usage
-    * Output an projected image in the video (**Default**)
+    * Output an projected image in the video (**Default Parameters**)
         ```
             python3 simple_ar.py -v ./input/ar_marker.mp4
                                  -m ./input/marker.png
