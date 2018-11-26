@@ -11,12 +11,6 @@ def solve_homography(u, v):
         return None
     if N < 4:
         print('At least 4 points should be given')
-    # A = np.zeros((2*N, 8))
-    # if you take solution 2:
-    # A = np.zeros((2*N, 9))
-    # b = np.zeros((2*N, 1))
-    # H = np.zeros((3, 3))
-    # TODO: compute H from A and b
     A = np.array([[u[0][0], u[0][1], 1, 0, 0, 0, -u[0][0] * v[0][0], -u[0][1] * v[0][0]],
                   [0, 0, 0, u[0][0], u[0][1], 1, -u[0][0] * v[0][1], -u[0][1] * v[0][1]],
                   [u[1][0], u[1][1], 1, 0, 0, 0, -u[1][0] * v[1][0], -u[1][1] * v[1][0]],
@@ -33,9 +27,7 @@ def solve_homography(u, v):
                   [v[2][1]],
                   [v[3][0]],
                   [v[3][1]]])
-
     h = np.dot(np.linalg.inv(A), b)
-
     H = np.array([[h[0, 0], h[1, 0], h[2, 0]],
                   [h[3, 0], h[4, 0], h[5, 0]],
                   [h[6, 0], h[7, 0], 1]])

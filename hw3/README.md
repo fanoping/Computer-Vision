@@ -45,6 +45,9 @@ Simply execute `main.py` to generate image for each part.
 * Apply **Feature Detection** and **Projective Geometry**
 * Using **SIFT** as feature points detector
 * Calculate **Homography Matrix**
+* Algorithm Flow
+
+    ![Flow](https://github.com/fanoping/Computer-Vision/blob/master/hw3/flow.png)
 * Usage
     ```
         python3 simple_ar.py -v [video]
