@@ -2,27 +2,8 @@ import numpy as np
 import cv2
 import time
 import math
-"""
-    r = 5
-    # TODO: Compute matching cost from Il and Ir
-    for y in range(r, h-r):
-        print("y", y)
-        for x in range(r, w-r):
-            best_label = 0
-            curr_distance = math.inf
+DEBUG = 1
 
-            for disp in range(max_disp):
-                dist = 0
-
-                for v in range(-r, r):
-                    for u in range(-r, r):
-                        d = int(Il[y+v, x+u]) - int(Ir[y+v, x+u - disp])
-                        dist += d * d
-                if dist < curr_distance:
-                    curr_distance = dist
-                    best_label = disp
-            labels[y, x] = best_label
-    """
 
 def computeDisp(Il, Ir, max_disp):
     h, w, ch = Il.shape
@@ -34,28 +15,37 @@ def computeDisp(Il, Ir, max_disp):
     tic = time.time()
 
     # initial cost computation
-    r_y, r_x = 7, 9
-    cost_census = np.ones((h, w, max_disp + 1), dtype=np.float32) * math.inf
-    cost_ad = np.ones((h, w, max_disp + 1), dtype=np.float32) * math.inf
+    left_census = np.zeros((h, w, 63 * 3), dtype=np.int)
+    right_census = np.zeros((h, w, 63 * 3), dtype=np.int)
+    random_int = np.random.randint(2**31)
 
-    for y in range(r_y // 2, h- (r_y // 2)):
-        for x in range(r_x // 2, w- (r_x //2)):
-            for disp in range(max_disp + 1):
-                if x - (r_x // 2) - disp < 0:
-                    break
-                # initial cost computation C_AD
-                c_ad = np.sum(abs(Il[y, x] - Ir[y, x - disp])) / 3.
-                cost_ad[y, x, disp] = c_ad
+    cost_ad = np.zeros((max_disp, h, w), dtype=np.float64)
+    cost_census = np.ones((max_disp, h, w), dtype=np.float64) * np.inf
 
-                # initial cost computation C_CENSUS
-                # left image window
-                c_census_l = Il[y - (r_y // 2): y + (r_y // 2) + 1, x - (r_x // 2): x + (r_x // 2) + 1] > Il[y, x]
-                # right image window
-                c_census_r = Ir[y - (r_y // 2): y + (r_y // 2) + 1, x - (r_x // 2) - disp: x + (r_x // 2) + 1 - disp] > Ir[y, x]
-                # Hamming distance calculation
-                c_census = (~c_census_l ^ ~c_census_r) & (c_census_l ^ c_census_r)
-                c_census = float(np.sum(c_census)) / 3.
-                cost_census[y, x, disp] = c_census
+    for y in range(h):
+        for x in range(w):
+            # initial cost computation C_AD
+            for disp in range(max_disp):
+                if x - disp < 0:
+                    cost_ad[disp, y, x] = math.inf
+                else:
+                    cost_ad[disp, y, x] = np.sum(abs(Il[y, x] - Ir[y, x - disp])) / 3.
+
+            # initial census cost
+            index = 0
+            for i in range(y - 3, y + 4):
+                for j in range(x - 4, x + 5):
+                    for k in range(3):
+                        if 0 <= i < h and 0 <= j < w:
+                            left_census[y, x, index] = Il[i, j, k] < Il[y, x, k]
+                            right_census[y, x, index] = Ir[i, j, k] < Ir[y, x, k]
+                        else:
+                            left_census[y, x, index] = random_int
+                            right_census[y, x, index] = random_int
+                        index += 1
+
+    for disp in range(max_disp):
+        cost_census[disp, :, disp:] = np.sum(left_census[:, disp:] != right_census[:, :w - disp], 2)
 
     lambda_census = 30.
     lambda_ad = 10.
@@ -64,8 +54,9 @@ def computeDisp(Il, Ir, max_disp):
     norm_census = 1 - np.exp(-cost_census / lambda_census)
     cost_total = norm_census + norm_ad
 
-    label = np.array([[np.argmin(cost_total[y, x]) for x in range(w)] for y in range(h)])
-    cv2.imwrite('test_cd.png', np.uint8(label * 16))
+    if DEBUG:
+        label = cost_total.argmin(0).astype(np.float64)
+        cv2.imwrite('tsukuba_adcost.png', np.uint8(label * 16))
 
     toc = time.time()
     print('* Elapsed time (cost computation): %f sec.' % (toc - tic))
@@ -77,107 +68,101 @@ def computeDisp(Il, Ir, max_disp):
     tao_1, tao_2 = 20, 6
     l1, l2 = 34, 17
 
+    def arm_check(p_y, p_x, q_y, q_x, edge_term, img):
+        # basic check, window size > pixel size
+        if not (0 <= q_y < h and 0 <= q_x < w):
+            return False
+        if abs(q_y - p_y) == 1 or abs(q_x - p_x) == 1:
+            return True
 
+        # Rule 1: Extend the arm such that the difference of the color intensity is smaller than the threshold tao_1
+        if max(abs(img[p_y, p_x] - img[q_y, q_x])) >= tao_1:
+            return False
+        if max(abs(img[q_y, q_x] - img[q_y + edge_term[0], q_x + edge_term[1]])) >= tao_1:
+            return False
+
+        # Rule 2: Aggregation window < L1
+        if abs(q_y - p_y) >= l1 or abs(q_x - p_x) >= l1:
+            return False
+
+        # Rule 3: Local information constraint
+        if abs(q_y - p_y) >= l2 or abs(q_x - p_x) >= l2:
+            if max(abs(img[p_y, p_x] - img[q_y, q_x])) >= tao_2:
+                return False
+
+        return True
+
+    # check aggregated window
+    def window_def(img):
+        window = np.empty((h, w, 4), dtype=np.int)
+        for y in range(h):
+            for x in range(w):
+                window[y, x, 0] = y - 1
+                window[y, x, 1] = y + 1
+                window[y, x, 2] = x - 1
+                window[y, x, 3] = x + 1
+                while arm_check(y, x, window[y, x, 0], x, [1, 0], img):
+                    window[y, x, 0] -= 1
+                while arm_check(y, x, window[y, x, 1], x, [-1, 0], img):
+                    window[y, x, 1] += 1
+                while arm_check(y, x, y, window[y, x, 2], [0, 1], img):
+                    window[y, x, 2] -= 1
+                while arm_check(y, x, y, window[y, x, 3], [0, -1], img):
+                    window[y, x, 3] += 1
+        return window
+
+    def cross_based_cost_aggrgation(wind_l, wind_r, prev_cost, vertical=True):
+        after_cost = np.empty_like(prev_cost)
+        for disp in range(max_disp):
+            for y in range(h):
+                for x in range(w):
+                    if x - disp < 0:
+                        after_cost[disp, y, x] = prev_cost[disp, y, x]
+                        continue
+                    p_cost, pixel_cnt = 0, 0
+                    if vertical:
+                        left_edge = max(wind_l[y, x, 2], wind_r[y, x - disp, 2] + disp) + 1
+                        right_edge = min(wind_l[y, x, 3], wind_r[y, x - disp, 3] + disp)
+                        for hori in range(left_edge, right_edge):
+                            up_edge = max(wind_l[y, x, 0], wind_r[y, x - disp, 0]) + 1
+                            down_edge = min(wind_l[y, x, 1], wind_r[y, x - disp, 1])
+                            for verti in range(up_edge, down_edge):
+                                p_cost += prev_cost[disp, verti, hori]
+                                pixel_cnt += 1
+                    else:
+                        up_edge = max(wind_l[y, x, 0], wind_r[y, x - disp, 0]) + 1
+                        down_edge = min(wind_l[y, x, 1], wind_r[y, x - disp, 1])
+                        for verti in range(up_edge, down_edge):
+                            left_edge = max(wind_l[y, x, 2], wind_r[y, x - disp, 2] + disp) + 1
+                            right_edge = min(wind_l[y, x, 3], wind_r[y, x - disp, 3] + disp)
+                            for hori in range(left_edge, right_edge):
+                                p_cost += prev_cost[disp, verti, hori]
+                                pixel_cnt += 1
+                    assert(pixel_cnt > 0)
+                    after_cost[disp, y, x] = p_cost / pixel_cnt
+        return after_cost
+
+    window_l = window_def(Il)
+    window_r = window_def(Ir)
 
     for idx in range(1, 3):
         print('* Cost aggregation ({})'.format(idx))
+        cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, False)
+        if DEBUG:
+            label = cost_total.argmin(0).astype(np.float64)
+            cv2.imwrite('tsukuba_adcost_hori_{}.png'.format(idx), np.uint8(label * 16))
 
-        # pre-compute aggregated cost horizontally
-        #cummulated_cost_horizontal = np.zeros_like(cost_total)
-        #for y, line in enumerate(cost_total):
-        #    for idx in range(len(line)):
-        #        cummulated_cost_horizontal[y, idx] = np.sum(cost_total[y, 0: idx + 1], axis=0)
-
-        def arm_check(p_y, p_x, q_y, q_x, edge_term):
-            """
-                Rule 1:
-                Extend the arm such that the difference of the color intensity is smaller than the threshold tao_1
-            """
-            if max(abs(Il[p_y, p_x] - Il[q_y, q_x])) >= tao_1:
-                return False
-            if max(abs(Il[q_y, q_x] - Il[q_y + edge_term[0], q_x + edge_term[1]])) >= tao_1:
-                return False
-            """
-                Rule 2:
-                Aggregation window < L1
-            """
-            if abs(q_y - p_y) >= l1 or abs(q_x - p_x) >= l1:
-                return False
-            """
-                Rule 3:
-                Local information constraint
-            """
-            if abs(q_y - p_y) > l2 or abs(q_x - p_x) > l2:
-                if max(abs(Il[p_y, p_x] - Il[q_y, q_x])) >= tao_2:
-                    return False
-            return True
-
-        cost_total_aggregated = np.copy(cost_total)
-        for y in range(r_y // 2, h - (r_y // 2)):
-            for x in range(r_x // 2, w - (r_x // 2)):
-                print(y, x)
-                up_arm, lower_arm = 0, 0
-                while arm_check(y, x, y - up_arm - 1, x, [1, 0]):
-                    up_arm += 1
-                while arm_check(y, x, y + lower_arm + 1, x, [-1, 0]):
-                    lower_arm += 1
-                    if y + lower_arm + 1 >= h:
-                        break
-
-                p_cost = 0
-                for vertical in range(-up_arm, lower_arm + 1):
-                    left_arm, right_arm = 0, 0
-                    while arm_check(y + vertical, x, y + vertical, x - left_arm - 1, [0, 1]):
-                        left_arm += 1
-                        if x - left_arm - 1 < 0:
-                            break
-                    while arm_check(y + vertical, x, y + vertical, x + right_arm + 1, [0, -1]):
-                        right_arm += 1
-                        if x + right_arm + 1 >= w:
-                            break
-
-                    for horizontal in range(-left_arm, right_arm + 1):
-                        p_cost += cost_total[y + vertical, x + horizontal]
-
-                cost_total_aggregated[y ,x] = p_cost
-
-        cost_total_aggregated_v = np.copy(cost_total_aggregated)
-        for y in range(r_y // 2, h - (r_y // 2)):
-            for x in range(r_x // 2, w - (r_x // 2)):
-                left_arm, right_arm = 0, 0
-                while arm_check(y, x, y, x - left_arm - 1, [0, 1]):
-                    left_arm += 1
-                    if x - left_arm - 1 < 0:
-                        break
-                while arm_check(y, x, y, x + right_arm + 1, [0, -1]):
-                    right_arm += 1
-                    if x + right_arm + 1 >= w:
-                        break
-
-                p_cost = 0
-                for horizontal in range(-left_arm, right_arm + 1):
-                    up_arm, lower_arm = 0, 0
-                    while arm_check(y, x + horizontal, y - up_arm - 1, x + horizontal, [1, 0]):
-                        up_arm += 1
-                    while arm_check(y, x + horizontal, y + lower_arm + 1, x + horizontal, [-1, 0]):
-                        lower_arm += 1
-                        if y + lower_arm + 1 >= h:
-                            break
-
-                    for vertical in range(-up_arm, lower_arm + 1):
-                        p_cost += cost_total_aggregated[y + vertical, x + horizontal]
-
-                cost_total_aggregated_v[y ,x] = p_cost
-
-
-        cost_total = np.copy(cost_total_aggregated_v)
-        label = np.array([[np.argmin(cost_total[y, x]) for x in range(w)] for y in range(h)])
-        cv2.imwrite('test_c{}.png'.format(idx), np.uint8(label * 16))
+        cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, True)
+        if DEBUG:
+            label = cost_total.argmin(0).astype(np.float64)
+            cv2.imwrite('tsukuba_adcost_verti_{}.png'.format(idx), np.uint8(label * 16))
 
     toc = time.time()
     print('* Elapsed time (cost aggregation): %f sec.' % (toc - tic))
 
-    labels = np.array([[np.argmin(cost_total[y, x]) for x in range(w)] for y in range(h)])
+    if DEBUG:
+        label = cost_total.argmin(0).astype(np.float64)
+        cv2.imwrite('tsukuba_adcost_agg.png', np.uint8(label * 16))
 
     # >>> Disparity optimization
     tic = time.time()
@@ -192,6 +177,7 @@ def computeDisp(Il, Ir, max_disp):
     toc = time.time()
     print('* Elapsed time (disparity refinement): %f sec.' % (toc - tic))
 
+    labels = cost_total.argmin(0).astype(np.float64)
     return labels
 
 
@@ -200,10 +186,10 @@ def main():
     print('Tsukuba')  # (288, 384, 3)
     img_left = cv2.imread('./testdata/tsukuba/im3.png')
     img_right = cv2.imread('./testdata/tsukuba/im4.png')
-    max_disp = 15
+    max_disp = 16
     scale_factor = 16
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('tsukuba1.png', np.uint8(labels * scale_factor))
+    cv2.imwrite('tsukuba.png', np.uint8(labels * scale_factor))
 
     print('Venus')  # (383, 434, 3)
     img_left = cv2.imread('./testdata/venus/im2.png')
@@ -211,7 +197,7 @@ def main():
     max_disp = 20
     scale_factor = 8
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('venus1.png', np.uint8(labels * scale_factor))
+    cv2.imwrite('venus.png', np.uint8(labels * scale_factor))
 
     print('Teddy')  # (375, 450, 3)
     img_left = cv2.imread('./testdata/teddy/im2.png')
@@ -219,7 +205,7 @@ def main():
     max_disp = 60
     scale_factor = 4
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('teddy1.png', np.uint8(labels * scale_factor))
+    cv2.imwrite('teddy.png', np.uint8(labels * scale_factor))
 
     print('Cones')  # (375, 450, 3)
     img_left = cv2.imread('./testdata/cones/im2.png')
@@ -227,7 +213,7 @@ def main():
     max_disp = 60
     scale_factor = 4
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('cones1.png', np.uint8(labels * scale_factor))
+    cv2.imwrite('cones.png', np.uint8(labels * scale_factor))
 
 
 if __name__ == '__main__':

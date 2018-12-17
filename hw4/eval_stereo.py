@@ -33,11 +33,11 @@ def main():
     avg += res
     print('Venus: %.2f%%' % (res*100))
 
-    res = evaluate('./teddy.png', './testdata/teddy/disp2.png', scale_factor=4)
+    res = evaluate('./teddy1.png', './testdata/teddy/disp2.png', scale_factor=4)
     avg += res
     print('Teddy: %.2f%%' % (res*100))
 
-    res = evaluate('./cones.png', './testdata/cones/disp2.png', scale_factor=4)
+    res = evaluate('./cones1.png', './testdata/cones/disp2.png', scale_factor=4)
     avg += res
     print('Cones: %.2f%%' % (res*100))
 
