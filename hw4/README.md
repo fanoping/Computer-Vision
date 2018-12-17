@@ -8,4 +8,4 @@
 * Using `eval_stereo.py` to evaluate.
     
 ## Part 2: Disparity Estimation 
-* *To be updated*
+* *To be updated...*

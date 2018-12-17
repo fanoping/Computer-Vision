@@ -77,6 +77,8 @@ def computeDisp(Il, Ir, max_disp):
     tao_1, tao_2 = 20, 6
     l1, l2 = 34, 17
 
+
+
     for idx in range(1, 3):
         print('* Cost aggregation ({})'.format(idx))
 
@@ -113,6 +115,7 @@ def computeDisp(Il, Ir, max_disp):
         cost_total_aggregated = np.copy(cost_total)
         for y in range(r_y // 2, h - (r_y // 2)):
             for x in range(r_x // 2, w - (r_x // 2)):
+                print(y, x)
                 up_arm, lower_arm = 0, 0
                 while arm_check(y, x, y - up_arm - 1, x, [1, 0]):
                     up_arm += 1
