@@ -2,7 +2,16 @@ import numpy as np
 import cv2
 import time
 import math
-DEBUG = 0  # valid for tsukuba
+DEBUG = 1
+
+"""
+    * TO BE UPDATED.....
+    run time and bad pixel ratio results (initialization / aggregation / optimization / refinement / bad pixel ratio)
+    Tsukuba: 50.49/1160.8/59.18/-/4.77
+    Venus: 83.50/2198.3/124.57/-/4.43
+    Teddy: 141.51/3024.0/-/-/17.76
+    Cones: 144.93/1268.0/-/-/14.26
+"""
 
 
 def computeDisp(Il, Ir, max_disp):
@@ -10,6 +19,10 @@ def computeDisp(Il, Ir, max_disp):
     Il = Il.astype(np.float64)
     Ir = Ir.astype(np.float64)
 
+    if DEBUG:
+        import os
+        if not os.path.exists('./results'):
+            os.mkdir('./results')
     # >>> Cost computation
     print("* Cost computation (initialization)")
     tic = time.time()
@@ -57,7 +70,7 @@ def computeDisp(Il, Ir, max_disp):
 
     if DEBUG:
         label = cost_total.argmin(0).astype(np.float64)
-        cv2.imwrite('tsukuba_adcost.png', np.uint8(label * 16))
+        cv2.imwrite('./results/{}_adcost.png'.format(name), np.uint8(label * scale_factor))
 
     toc = time.time()
     print('* Elapsed time (cost computation): %f sec.' % (toc - tic))
@@ -147,27 +160,179 @@ def computeDisp(Il, Ir, max_disp):
     window_r = window_def(Ir)
 
     for idx in range(1, 3):
+        # do horizontal and vertical aggregation alternatively
         print('* Cost aggregation ({})'.format(idx))
         cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, False)
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            cv2.imwrite('tsukuba_adcost_hori_{}.png'.format(idx), np.uint8(label * 16))
+            cv2.imwrite('./results/{}_adcost_hori_{}.png'.format(name, idx), np.uint8(label * scale_factor))
 
         cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, True)
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            cv2.imwrite('tsukuba_adcost_verti_{}.png'.format(idx), np.uint8(label * 16))
+            cv2.imwrite('./results/{}_adcost_verti_{}.png'.format(name, idx), np.uint8(label * scale_factor))
 
     toc = time.time()
     print('* Elapsed time (cost aggregation): %f sec.' % (toc - tic))
 
     if DEBUG:
         label = cost_total.argmin(0).astype(np.float64)
-        cv2.imwrite('tsukuba_adcost_agg.png', np.uint8(label * 16))
+        cv2.imwrite('./results/{}_adcost_agg.png'.format(name), np.uint8(label * scale_factor))
 
     # >>> Disparity optimization
     tic = time.time()
     # TODO: Find optimal disparity based on estimated cost. Usually winner-take-all.
+    # Scanline optimization: semi-global matching
+    tao_so = 15
+    pi_1, pi_2 = 1., 3.
+
+    # left-right scanline optimization
+    result = np.empty_like(cost_total)
+    prev_min = 0
+    for y in range(h):
+        for x in range(w):
+            curr_min = np.inf
+            for disp in range(max_disp):
+                if x - disp - 1 < 0:
+                    result[disp, y, x] = cost_total[disp, y, x]
+                else:
+                    # difference between neighboring
+                    d_1 = max(abs(Il[y, x] - Il[y, x - 1]))
+                    d_2 = max(abs(Ir[y, x - disp] - Ir[y, x - disp - 1]))
+
+                    # constraint
+                    if d_1 < tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1, pi_2
+                    elif d_1 < tao_so and d_2 >= tao_so:
+                        p_1, p_2 = pi_1/4., pi_2/4.
+                    elif d_1 >= tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1/4., pi_2/4.
+                    else:
+                        p_1, p_2 = pi_1/10., pi_2/10.
+
+                    result[disp, y, x] = cost_total[disp, y, x] - prev_min + min(
+                        result[disp, y, x - 1],
+                        result[disp - 1, y, x - 1] + p_1 if disp - 1 >= 0 else np.inf,
+                        result[disp + 1, y, x - 1] + p_1 if disp + 1 < max_disp else np.inf,
+                        prev_min + p_2
+                    )
+
+                if result[disp, y, x] < curr_min:
+                    curr_min = result[disp, y, x]
+            prev_min = curr_min
+    left_right = result
+
+    # right-left scanline optimization
+    result = np.empty_like(cost_total)
+    for y in range(h):
+        for x in range(w-1, -1, -1):
+            curr_min = np.inf
+            for disp in range(max_disp):
+                if x + 1 >= w or x - disp < 0:
+                    result[disp, y, x] = cost_total[disp, y, x]
+                else:
+                    # difference between neighboring
+                    d_1 = max(abs(Il[y, x] - Il[y, x + 1]))
+                    d_2 = max(abs(Ir[y, x - disp] - Ir[y, x - disp + 1]))
+
+                    # constraint
+                    if d_1 < tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1, pi_2
+                    elif d_1 < tao_so and d_2 >= tao_so:
+                        p_1, p_2 = pi_1/4., pi_2/4.
+                    elif d_1 >= tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1/4., pi_2/4.
+                    else:
+                        p_1, p_2 = pi_1/10., pi_2/10.
+
+                    result[disp, y, x] = cost_total[disp, y, x] - prev_min + min(
+                        result[disp, y, x + 1],
+                        result[disp - 1, y, x + 1] + p_1 if disp - 1 >= 0 else np.inf,
+                        result[disp + 1, y, x + 1] + p_1 if disp + 1 < max_disp else np.inf,
+                        prev_min + p_2
+                    )
+
+                if result[disp, y, x] < curr_min:
+                    curr_min = result[disp, y, x]
+            prev_min = curr_min
+    right_left = result
+
+    # up-down scanline optimization
+    result = np.empty_like(cost_total)
+    for x in range(w):
+        for y in range(h):
+            curr_min = np.inf
+            for disp in range(max_disp):
+                if y - 1 < 0 or y - disp < 0:
+                    result[disp, y, x] = cost_total[disp, y, x]
+                else:
+                    # difference between neighboring
+                    d_1 = max(abs(Il[y, x] - Il[y - 1, x]))
+                    d_2 = max(abs(Ir[y, x - disp] - Ir[y - 1, x - disp]))
+
+                    # constraint
+                    if d_1 < tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1, pi_2
+                    elif d_1 < tao_so and d_2 >= tao_so:
+                        p_1, p_2 = pi_1 / 4., pi_2 / 4.
+                    elif d_1 >= tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1 / 4., pi_2 / 4.
+                    else:
+                        p_1, p_2 = pi_1 / 10., pi_2 / 10.
+
+                    result[disp, y, x] = cost_total[disp, y, x] - prev_min + min(
+                        result[disp, y - 1, x],
+                        result[disp - 1, y - 1, x] + p_1 if disp - 1 >= 0 else np.inf,
+                        result[disp + 1, y - 1, x] + p_1 if disp + 1 < max_disp else np.inf,
+                        prev_min + p_2
+                    )
+
+                if result[disp, y, x] < curr_min:
+                    curr_min = result[disp, y, x]
+            prev_min = curr_min
+    up_down = result
+
+    # down-up scanline optimization
+    result = np.empty_like(cost_total)
+    for x in range(w):
+        for y in range(h - 1, -1, -1):
+            curr_min = np.inf
+            for disp in range(max_disp):
+                if y + 1 >= h or y - disp < 0:
+                    result[disp, y, x] = cost_total[disp, y, x]
+                else:
+                    # difference between neighboring
+                    d_1 = max(abs(Il[y, x] - Il[y + 1, x]))
+                    d_2 = max(abs(Ir[y, x - disp] - Ir[y + 1, x - disp]))
+
+                    # constraint
+                    if d_1 < tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1, pi_2
+                    elif d_1 < tao_so and d_2 >= tao_so:
+                        p_1, p_2 = pi_1 / 4., pi_2 / 4.
+                    elif d_1 >= tao_so and d_2 < tao_so:
+                        p_1, p_2 = pi_1 / 4., pi_2 / 4.
+                    else:
+                        p_1, p_2 = pi_1 / 10., pi_2 / 10.
+
+                    result[disp, y, x] = cost_total[disp, y, x] - prev_min + min(
+                        result[disp, y + 1, x],
+                        result[disp - 1, y + 1, x] + p_1 if disp - 1 >= 0 else np.inf,
+                        result[disp + 1, y + 1, x] + p_1 if disp + 1 < max_disp else np.inf,
+                        prev_min + p_2
+                    )
+
+                if result[disp, y, x] < curr_min:
+                    curr_min = result[disp, y, x]
+            prev_min = curr_min
+    down_up = result
+
+    cost_total = (left_right + right_left + up_down + down_up) / 4.
+
+    if DEBUG:
+        label = cost_total.argmin(0).astype(np.float64)
+        cv2.imwrite('./results/{}_adcost_optim.png'.format(name), np.uint8(label * scale_factor))
+
     toc = time.time()
     print('* Elapsed time (disparity optimization): %f sec.' % (toc - tic))
 
@@ -183,7 +348,8 @@ def computeDisp(Il, Ir, max_disp):
 
 
 def main():
-
+    global name, scale_factor
+    name = 'tsukuba'
     print('Tsukuba')  # (288, 384, 3)
     img_left = cv2.imread('./testdata/tsukuba/im3.png')
     img_right = cv2.imread('./testdata/tsukuba/im4.png')
@@ -192,6 +358,7 @@ def main():
     labels = computeDisp(img_left, img_right, max_disp)
     cv2.imwrite('tsukuba.png', np.uint8(labels * scale_factor))
 
+    name = 'venus'
     print('Venus')  # (383, 434, 3)
     img_left = cv2.imread('./testdata/venus/im2.png')
     img_right = cv2.imread('./testdata/venus/im6.png')
@@ -200,6 +367,7 @@ def main():
     labels = computeDisp(img_left, img_right, max_disp)
     cv2.imwrite('venus.png', np.uint8(labels * scale_factor))
 
+    name = 'teddy'
     print('Teddy')  # (375, 450, 3)
     img_left = cv2.imread('./testdata/teddy/im2.png')
     img_right = cv2.imread('./testdata/teddy/im6.png')
@@ -208,6 +376,7 @@ def main():
     labels = computeDisp(img_left, img_right, max_disp)
     cv2.imwrite('teddy.png', np.uint8(labels * scale_factor))
 
+    name = 'cones'
     print('Cones')  # (375, 450, 3)
     img_left = cv2.imread('./testdata/cones/im2.png')
     img_right = cv2.imread('./testdata/cones/im6.png')
