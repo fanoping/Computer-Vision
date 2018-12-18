@@ -2,18 +2,10 @@ import numpy as np
 import cv2
 import time
 import math
+import os
 from scipy.ndimage.filters import median_filter, sobel
 DEBUG = 1
-SAVE_DIR = "./results"
-
-"""
-    * TO BE UPDATED.....
-    run time and bad pixel ratio results (initialization / aggregation / optimization / refinement / bad pixel ratio)
-    Tsukuba: 50.49/1160.8/59.18/-/4.77
-    Venus: 83.50/2198.3/124.57/-/4.43
-    Teddy: 141.51/3024.0/-/-/17.76
-    Cones: 144.93/1268.0/-/-/14.26
-"""
+SAVE_DIR = "./result_local"
 
 
 def computeDisp(Il, Ir, max_disp):
@@ -22,7 +14,6 @@ def computeDisp(Il, Ir, max_disp):
     Ir = Ir.astype(np.float64)
 
     if DEBUG:
-        import os
         if not os.path.exists(SAVE_DIR):
             os.mkdir(SAVE_DIR)
 
@@ -102,7 +93,7 @@ def computeDisp(Il, Ir, max_disp):
                     after_cost[disp, y, x] = p_cost / pixel_cnt
         return after_cost
 
-    def cost_matching(img_l, img_r):
+    def cost_matching(img_l, img_r, reverse=False):
         # >>> Cost computation
         print("* Cost computation (initialization)")
         tic = time.time()
@@ -141,6 +132,8 @@ def computeDisp(Il, Ir, max_disp):
         for disp in range(max_disp):
             cost_census[disp, :, disp:] = np.sum(left_census[:, disp:] != right_census[:, :w - disp], 2)
 
+        cost_census /= 3
+
         lambda_census = 30
         lambda_ad = 10
 
@@ -150,7 +143,9 @@ def computeDisp(Il, Ir, max_disp):
 
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            cv2.imwrite(os.path.join(SAVE_DIR, '{}_adcost.png'.format(name)), np.uint8(label * scale_factor))
+            filename = os.path.join(SAVE_DIR, '{}_adcost_census-rgb.png'.format(name)) if not reverse \
+                       else os.path.join(SAVE_DIR, '{}_adcost_r.png'.format(name))
+            cv2.imwrite(filename, np.uint8(label * scale_factor))
 
         toc = time.time()
         print('* Elapsed time (cost computation): %f sec.' % (toc - tic))
@@ -169,20 +164,26 @@ def computeDisp(Il, Ir, max_disp):
             cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, False)
             if DEBUG:
                 label = cost_total.argmin(0).astype(np.float64)
-                cv2.imwrite(os.path.join(SAVE_DIR, '{}_adcost_hori_{}.png'.format(name, idx)), np.uint8(label * scale_factor))
+                filename = os.path.join(SAVE_DIR, '{}_adcost_hori_{}.png'.format(name, idx)) if not reverse \
+                    else os.path.join(SAVE_DIR, '{}_adcost_hori_{}_r.png'.format(name, idx))
+                cv2.imwrite(filename, np.uint8(label * scale_factor))
 
             print('* Cost aggregation (vertical {})'.format(idx))
             cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, True)
             if DEBUG:
                 label = cost_total.argmin(0).astype(np.float64)
-                cv2.imwrite(os.path.join(SAVE_DIR, '{}_adcost_verti_{}.png'.format(name, idx)), np.uint8(label * scale_factor))
+                filename = os.path.join(SAVE_DIR, '{}_adcost_verti_{}.png'.format(name, idx)) if not reverse \
+                    else os.path.join(SAVE_DIR, '{}_adcost_verti_{}_r.png'.format(name, idx))
+                cv2.imwrite(filename, np.uint8(label * scale_factor))
 
         toc = time.time()
         print('* Elapsed time (cost aggregation): %f sec.' % (toc - tic))
 
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            cv2.imwrite(os.path.join(SAVE_DIR, '{}_adcost_agg.png'.format(name)), np.uint8(label * scale_factor))
+            filename = os.path.join(SAVE_DIR, '{}_adcost_agg.png'.format(name)) if not reverse \
+                else os.path.join(SAVE_DIR, '{}_adcost_agg_r.png'.format(name))
+            cv2.imwrite(filename, np.uint8(label * scale_factor))
 
         # >>> Disparity optimization
         tic = time.time()
@@ -337,7 +338,9 @@ def computeDisp(Il, Ir, max_disp):
 
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            cv2.imwrite(os.path.join(SAVE_DIR, '{}_adcost_optim.png'.format(name)), np.uint8(label * scale_factor))
+            filename = os.path.join(SAVE_DIR, '{}_adcost_optim.png'.format(name)) if not reverse \
+                else os.path.join(SAVE_DIR, '{}_adcost_optim_r.png'.format(name))
+            cv2.imwrite(filename, np.uint8(label * scale_factor))
 
         toc = time.time()
         print('* Elapsed time (disparity optimization): %f sec.' % (toc - tic))
@@ -345,7 +348,8 @@ def computeDisp(Il, Ir, max_disp):
         return cost_total, window_l
 
     cost_total, window_l = cost_matching(Il, Ir)
-    cost_total_r, _ = cost_matching(Ir[:, ::-1], Il[:, ::-1])[:, :, ::-1]
+    cost_total_r, _ = cost_matching(Ir[:, ::-1], Il[:, ::-1], True)
+    cost_total_r = cost_total_r[:, :, ::-1]
 
     def outlier_detection(label, label_r):
         outlier = np.empty_like(label)
@@ -364,8 +368,8 @@ def computeDisp(Il, Ir, max_disp):
                             outlier[y, x] = 2
         return outlier
 
-
     tao_s, tao_h = 20, 0.4
+
     def iterative_region_voting(window, label, outlier):
         histogram = np.empty(max_disp, dtype=int)
         result = np.empty_like(label)
@@ -427,11 +431,11 @@ def computeDisp(Il, Ir, max_disp):
                     for direction in range(16):
                         dir_y, dir_x = all_dir[direction, 0], all_dir[direction, 1]
                         verti, hori = y, x
-                        verti_iter, hori_iter = round(verti), round(hori)
+                        verti_iter, hori_iter = int(round(verti)), int(round(hori))
                         while 0 <= verti_iter < h and 0 <= hori_iter < w and outlier[verti_iter, hori_iter] != 0:
                             verti += dir_y
                             hori += dir_x
-                            verti_iter, hori_iter = round(verti), round(hori)
+                            verti_iter, hori_iter = int(round(verti)), int(round(hori))
                         if 0 <= verti_iter < h and 0 <= hori_iter < w:
                             assert(outlier[verti_iter, hori_iter] == 0)
                             if outlier[y, x] == 1:
@@ -484,7 +488,7 @@ def computeDisp(Il, Ir, max_disp):
             for x in range(w):
                 disp = label[y, x]
                 result[y, x] = disp
-                if 1 <= disp < max_disp -1:
+                if 1 <= disp < max_disp - 1:
                     cn = cost[disp - 1, y, x]
                     cz = cost[disp, y, x]
                     cp = cost[disp + 1, y, x]
@@ -520,7 +524,7 @@ def computeDisp(Il, Ir, max_disp):
         output[outlier != 0] = 0
         output[outlier == 1, 0] = 255
         output[outlier == 2, 1] = 255
-        cv2.imwrite(os.path.join(SAVE_DIR, '{}_outlier.png'.format(name)), np.uint8(output))
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_outlier_after_voting.png'.format(name)), np.uint8(output))
 
     print('* Proper interpolation')
     labels = proper_interpolation(Il, labels, outlier)
@@ -530,7 +534,7 @@ def computeDisp(Il, Ir, max_disp):
     print('* Depth discontinuity adjustment')
     labels = depth_discontinuity_adjustment(labels, cost_total)
     if DEBUG:
-        cv2.imwrite(os.path.join(SAVE_DIR, '{}_depth_discontinuity_adjustment.png'.format(name)), np.uint8(labels * scale_factor))
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_depth_discont_adjust.png'.format(name)), np.uint8(labels * scale_factor))
 
     print('* Subpixel enhancement')
     labels = subpixel_enhancement(labels, cost_total)
