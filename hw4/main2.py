@@ -2,13 +2,13 @@ import numpy as np
 import cv2
 import time
 import math
-DEBUG = 1
+DEBUG = 0  # valid for tsukuba
 
 
 def computeDisp(Il, Ir, max_disp):
     h, w, ch = Il.shape
-    Il = Il.astype(np.float32)
-    Ir = Ir.astype(np.float32)
+    Il = Il.astype(np.float64)
+    Ir = Ir.astype(np.float64)
 
     # >>> Cost computation
     print("* Cost computation (initialization)")
@@ -17,6 +17,7 @@ def computeDisp(Il, Ir, max_disp):
     # initial cost computation
     left_census = np.zeros((h, w, 63 * 3), dtype=np.int)
     right_census = np.zeros((h, w, 63 * 3), dtype=np.int)
+    np.random.seed(1)
     random_int = np.random.randint(2**31)
 
     cost_ad = np.zeros((max_disp, h, w), dtype=np.float64)
