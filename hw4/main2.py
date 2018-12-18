@@ -43,7 +43,7 @@ def computeDisp(Il, Ir, max_disp):
                 if x - disp < 0:
                     cost_ad[disp, y, x] = math.inf
                 else:
-                    cost_ad[disp, y, x] = np.sum(abs(Il[y, x] - Ir[y, x - disp])) / 3.
+                    cost_ad[disp, y, x] = np.sum(abs(Il[y, x] - Ir[y, x - disp])) / 3
 
             # initial census cost
             index = 0
@@ -61,8 +61,8 @@ def computeDisp(Il, Ir, max_disp):
     for disp in range(max_disp):
         cost_census[disp, :, disp:] = np.sum(left_census[:, disp:] != right_census[:, :w - disp], 2)
 
-    lambda_census = 30.
-    lambda_ad = 10.
+    lambda_census = 30
+    lambda_ad = 10
 
     norm_ad = 1 - np.exp(-cost_ad / lambda_ad)
     norm_census = 1 - np.exp(-cost_census / lambda_census)
@@ -138,8 +138,8 @@ def computeDisp(Il, Ir, max_disp):
                         left_edge = max(wind_l[y, x, 2], wind_r[y, x - disp, 2] + disp) + 1
                         right_edge = min(wind_l[y, x, 3], wind_r[y, x - disp, 3] + disp)
                         for hori in range(left_edge, right_edge):
-                            up_edge = max(wind_l[y, x, 0], wind_r[y, x - disp, 0]) + 1
-                            down_edge = min(wind_l[y, x, 1], wind_r[y, x - disp, 1])
+                            up_edge = max(wind_l[y, hori, 0], wind_r[y, hori - disp, 0]) + 1
+                            down_edge = min(wind_l[y, hori, 1], wind_r[y, hori - disp, 1])
                             for verti in range(up_edge, down_edge):
                                 p_cost += prev_cost[disp, verti, hori]
                                 pixel_cnt += 1
@@ -147,8 +147,8 @@ def computeDisp(Il, Ir, max_disp):
                         up_edge = max(wind_l[y, x, 0], wind_r[y, x - disp, 0]) + 1
                         down_edge = min(wind_l[y, x, 1], wind_r[y, x - disp, 1])
                         for verti in range(up_edge, down_edge):
-                            left_edge = max(wind_l[y, x, 2], wind_r[y, x - disp, 2] + disp) + 1
-                            right_edge = min(wind_l[y, x, 3], wind_r[y, x - disp, 3] + disp)
+                            left_edge = max(wind_l[verti, x, 2], wind_r[verti, x - disp, 2] + disp) + 1
+                            right_edge = min(wind_l[verti, x, 3], wind_r[verti, x - disp, 3] + disp)
                             for hori in range(left_edge, right_edge):
                                 p_cost += prev_cost[disp, verti, hori]
                                 pixel_cnt += 1
