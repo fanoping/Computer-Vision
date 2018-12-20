@@ -25,19 +25,19 @@ def main():
     print('[Bad Pixel Ratio]')
     avg = 0
 
-    res = evaluate('./tsukuba.png', './testdata/tsukuba/disp3.pgm', scale_factor=16)
+    res = evaluate('./result_test_bilateral_0.02_0.4_verifying/tsukuba.png', './testdata/tsukuba/disp3.pgm', scale_factor=16)
     avg += res
     print('Tsukuba: %.2f%%' % (res*100))
 
-    res = evaluate('./venus.png', './testdata/venus/disp2.pgm', scale_factor=8)
+    res = evaluate('./result_test_bilateral_0.02_0.4_verifying/venus.png', './testdata/venus/disp2.pgm', scale_factor=8)
     avg += res
     print('Venus: %.2f%%' % (res*100))
 
-    res = evaluate('./teddy.png', './testdata/teddy/disp2.png', scale_factor=4)
+    res = evaluate('./result_test_bilateral_0.02_0.4_verifying/teddy.png', './testdata/teddy/disp2.png', scale_factor=4)
     avg += res
     print('Teddy: %.2f%%' % (res*100))
 
-    res = evaluate('./cones.png', './testdata/cones/disp2.png', scale_factor=4)
+    res = evaluate('./result_test_bilateral_0.02_0.4_verifying/cones.png', './testdata/cones/disp2.png', scale_factor=4)
     avg += res
     print('Cones: %.2f%%' % (res*100))
 

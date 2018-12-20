@@ -5,41 +5,78 @@ import math
 import os
 from scipy.ndimage.filters import median_filter, sobel
 DEBUG = 1
-SAVE_DIR = "./result_local"
+SAVE_DIR = "./result_test_bilateral_0.02_0.4_verifying"
 
 
 def computeDisp(Il, Ir, max_disp):
     h, w, ch = Il.shape
-    Il = Il.astype(np.float64)
-    Ir = Ir.astype(np.float64)
 
     if DEBUG:
         if not os.path.exists(SAVE_DIR):
             os.mkdir(SAVE_DIR)
 
+    print('* Bilateral Filtering')
+    def bilateral_filter(image, texture):
+        r = 9
+        sigma_s, sigma_r = 0.02, 0.4*255
+        image_pad = np.pad(image, ((r, r), (r, r), (0, 0)), 'symmetric').astype(np.float64)
+        texture_pad = np.pad(texture, ((r, r), (r, r), (0, 0)), 'symmetric').astype(np.int32)
+
+        output = np.zeros_like(image)
+        scale_factor_s = 1 / (2 * sigma_s * sigma_s)
+        scale_factor_r = 1 / (2 * sigma_r * sigma_r)
+        # range kernel
+        table = np.exp(-np.arange(256) * np.arange(256) * scale_factor_r)
+
+        x, y = np.meshgrid(np.arange(2 * r + 1) - r, np.arange(2 * r + 1) - r)
+        kernel_s = np.exp(-(x * x + y * y) * scale_factor_s)
+
+        for y in range(r, r+h):
+            for x in range(r, r+w):
+                weight = table[abs(texture_pad[y - r: y + r + 1, x - r: x + r + 1, 0] - texture_pad[y, x, 0])] * \
+                         table[abs(texture_pad[y - r: y + r + 1, x - r: x + r + 1, 1] - texture_pad[y, x, 1])] * \
+                         table[abs(texture_pad[y - r: y + r + 1, x - r: x + r + 1, 2] - texture_pad[y, x, 2])] * \
+                         kernel_s
+                cum_weight = np.sum(weight)
+                output[y - r, x - r, 0] = np.sum(weight * image_pad[y - r: y + r + 1, x - r:x + r + 1, 0]) / cum_weight
+                output[y - r, x - r, 1] = np.sum(weight * image_pad[y - r: y + r + 1, x - r:x + r + 1, 1]) / cum_weight
+                output[y - r, x - r, 2] = np.sum(weight * image_pad[y - r: y + r + 1, x - r:x + r + 1, 2]) / cum_weight
+        return output
+
+    Il = bilateral_filter(Il, Il)
+    Ir = bilateral_filter(Ir, Ir)
+
+    if DEBUG:
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_left.png'.format(name)), Il)
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_right.png'.format(name)), Ir)
+
+    Il = Il.astype(np.float64)
+    Ir = Ir.astype(np.float64)
+
     tao_1, tao_2 = 20, 6
     l1, l2 = 34, 17
     def arm_check(p_y, p_x, q_y, q_x, edge_term, img):
         # basic check, window size > pixel size
-        if not (0 <= q_y < h and 0 <= q_x < w):
-            return False
-        if abs(q_y - p_y) == 1 or abs(q_x - p_x) == 1:
-            return True
+        if not (0 <= q_y < h and 0 <= q_x < w): return False
+        if abs(q_y - p_y) == 1 or abs(q_x - p_x) == 1: return True
 
         # Rule 1: Extend the arm such that the difference of the color intensity is smaller than the threshold tao_1
-        if max(abs(img[p_y, p_x] - img[q_y, q_x])) >= tao_1:
-            return False
-        if max(abs(img[q_y, q_x] - img[q_y + edge_term[0], q_x + edge_term[1]])) >= tao_1:
-            return False
+        if abs(img[p_y, p_x, 0] - img[q_y, q_x, 0]) >= tao_1: return False
+        if abs(img[p_y, p_x, 1] - img[q_y, q_x, 1]) >= tao_1: return False
+        if abs(img[p_y, p_x, 2] - img[q_y, q_x, 2]) >= tao_1: return False
+
+        if abs(img[q_y, q_x, 0] - img[q_y + edge_term[0], q_x + edge_term[1], 0]) >= tao_1: return False
+        if abs(img[q_y, q_x, 1] - img[q_y + edge_term[0], q_x + edge_term[1], 1]) >= tao_1: return False
+        if abs(img[q_y, q_x, 2] - img[q_y + edge_term[0], q_x + edge_term[1], 2]) >= tao_1: return False
 
         # Rule 2: Aggregation window < L1
-        if abs(q_y - p_y) >= l1 or abs(q_x - p_x) >= l1:
-            return False
+        if abs(q_y - p_y) >= l1 or abs(q_x - p_x) >= l1: return False
 
         # Rule 3: Local information constraint
         if abs(q_y - p_y) >= l2 or abs(q_x - p_x) >= l2:
-            if max(abs(img[p_y, p_x] - img[q_y, q_x])) >= tao_2:
-                return False
+            if abs(img[p_y, p_x, 0] - img[q_y, q_x, 0]) >= tao_2: return False
+            if abs(img[p_y, p_x, 1] - img[q_y, q_x, 1]) >= tao_2: return False
+            if abs(img[p_y, p_x, 2] - img[q_y, q_x, 2]) >= tao_2: return False
 
         return True
 
@@ -62,7 +99,7 @@ def computeDisp(Il, Ir, max_disp):
                     window[y, x, 3] += 1
         return window
 
-    def cross_based_cost_aggrgation(wind_l, wind_r, prev_cost, vertical=True):
+    def cross_based_cost_aggregation(wind_l, wind_r, prev_cost, vertical=True):
         after_cost = np.empty_like(prev_cost)
         for disp in range(max_disp):
             for y in range(h):
@@ -114,7 +151,10 @@ def computeDisp(Il, Ir, max_disp):
                     if x - disp < 0:
                         cost_ad[disp, y, x] = math.inf
                     else:
-                        cost_ad[disp, y, x] = np.sum(abs(img_l[y, x] - img_r[y, x - disp])) / 3
+                        cost_ad[disp, y, x] += abs(img_l[y, x, 0] - img_r[y, x - disp, 0])
+                        cost_ad[disp, y, x] += abs(img_l[y, x, 1] - img_r[y, x - disp, 1])
+                        cost_ad[disp, y, x] += abs(img_l[y, x, 2] - img_r[y, x - disp, 2])
+                        cost_ad[disp, y, x] /= 3
 
                 # initial census cost
                 index = 0
@@ -143,7 +183,7 @@ def computeDisp(Il, Ir, max_disp):
 
         if DEBUG:
             label = cost_total.argmin(0).astype(np.float64)
-            filename = os.path.join(SAVE_DIR, '{}_adcost_census-rgb.png'.format(name)) if not reverse \
+            filename = os.path.join(SAVE_DIR, '{}_adcost.png'.format(name)) if not reverse \
                        else os.path.join(SAVE_DIR, '{}_adcost_r.png'.format(name))
             cv2.imwrite(filename, np.uint8(label * scale_factor))
 
@@ -161,7 +201,7 @@ def computeDisp(Il, Ir, max_disp):
         for idx in range(1, 3):
             # do horizontal and vertical aggregation alternatively
             print('* Cost aggregation (horizontal {})'.format(idx))
-            cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, False)
+            cost_total = cross_based_cost_aggregation(window_l, window_r, cost_total, False)
             if DEBUG:
                 label = cost_total.argmin(0).astype(np.float64)
                 filename = os.path.join(SAVE_DIR, '{}_adcost_hori_{}.png'.format(name, idx)) if not reverse \
@@ -169,7 +209,7 @@ def computeDisp(Il, Ir, max_disp):
                 cv2.imwrite(filename, np.uint8(label * scale_factor))
 
             print('* Cost aggregation (vertical {})'.format(idx))
-            cost_total = cross_based_cost_aggrgation(window_l, window_r, cost_total, True)
+            cost_total = cross_based_cost_aggregation(window_l, window_r, cost_total, True)
             if DEBUG:
                 label = cost_total.argmin(0).astype(np.float64)
                 filename = os.path.join(SAVE_DIR, '{}_adcost_verti_{}.png'.format(name, idx)) if not reverse \
@@ -204,8 +244,12 @@ def computeDisp(Il, Ir, max_disp):
                         result[disp, y, x] = cost_total[disp, y, x]
                     else:
                         # difference between neighboring
-                        d_1 = max(abs(img_l[y, x] - img_l[y, x - 1]))
-                        d_2 = max(abs(img_r[y, x - disp] - img_r[y, x - disp - 1]))
+                        d_1 = max(abs(img_l[y, x, 0] - img_l[y, x - 1, 0]),
+                                  abs(img_l[y, x, 1] - img_l[y, x - 1, 1]),
+                                  abs(img_l[y, x, 2] - img_l[y, x - 1, 2]))
+                        d_2 = max(abs(img_r[y, x - disp, 0] - img_r[y, x - disp - 1, 0]),
+                                  abs(img_r[y, x - disp, 1] - img_r[y, x - disp - 1, 1]),
+                                  abs(img_r[y, x - disp, 2] - img_r[y, x - disp - 1, 2]))
 
                         # constraint
                         if d_1 < tao_so and d_2 < tao_so:
@@ -239,8 +283,12 @@ def computeDisp(Il, Ir, max_disp):
                         result[disp, y, x] = cost_total[disp, y, x]
                     else:
                         # difference between neighboring
-                        d_1 = max(abs(img_l[y, x] - img_l[y, x + 1]))
-                        d_2 = max(abs(img_r[y, x - disp] - img_r[y, x - disp + 1]))
+                        d_1 = max(abs(img_l[y, x, 0] - img_l[y, x + 1, 0]),
+                                  abs(img_l[y, x, 1] - img_l[y, x + 1, 1]),
+                                  abs(img_l[y, x, 2] - img_l[y, x + 1, 2]))
+                        d_2 = max(abs(img_r[y, x - disp, 0] - img_r[y, x - disp + 1, 0]),
+                                  abs(img_r[y, x - disp, 1] - img_r[y, x - disp + 1, 1]),
+                                  abs(img_r[y, x - disp, 2] - img_r[y, x - disp + 1, 2]))
 
                         # constraint
                         if d_1 < tao_so and d_2 < tao_so:
@@ -274,8 +322,12 @@ def computeDisp(Il, Ir, max_disp):
                         result[disp, y, x] = cost_total[disp, y, x]
                     else:
                         # difference between neighboring
-                        d_1 = max(abs(img_l[y, x] - img_l[y - 1, x]))
-                        d_2 = max(abs(img_r[y, x - disp] - img_r[y - 1, x - disp]))
+                        d_1 = max(abs(img_l[y, x, 0] - img_l[y - 1, x, 0]),
+                                  abs(img_l[y, x, 1] - img_l[y - 1, x, 1]),
+                                  abs(img_l[y, x, 2] - img_l[y - 1, x, 2]))
+                        d_2 = max(abs(img_r[y, x - disp, 0] - img_r[y - 1, x - disp, 0]),
+                                  abs(img_r[y, x - disp, 1] - img_r[y - 1, x - disp, 1]),
+                                  abs(img_r[y, x - disp, 2] - img_r[y - 1, x - disp, 2]))
 
                         # constraint
                         if d_1 < tao_so and d_2 < tao_so:
@@ -309,8 +361,12 @@ def computeDisp(Il, Ir, max_disp):
                         result[disp, y, x] = cost_total[disp, y, x]
                     else:
                         # difference between neighboring
-                        d_1 = max(abs(img_l[y, x] - img_l[y + 1, x]))
-                        d_2 = max(abs(img_r[y, x - disp] - img_r[y + 1, x - disp]))
+                        d_1 = max(abs(img_l[y, x, 0] - img_l[y + 1, x, 0]),
+                                  abs(img_l[y, x, 1] - img_l[y + 1, x, 1]),
+                                  abs(img_l[y, x, 2] - img_l[y + 1, x, 2]))
+                        d_2 = max(abs(img_r[y, x - disp, 0] - img_r[y + 1, x - disp, 0]),
+                                  abs(img_r[y, x - disp, 1] - img_r[y + 1, x - disp, 1]),
+                                  abs(img_r[y, x - disp, 2] - img_r[y + 1, x - disp, 2]))
 
                         # constraint
                         if d_1 < tao_so and d_2 < tao_so:
@@ -353,6 +409,7 @@ def computeDisp(Il, Ir, max_disp):
 
     def outlier_detection(label, label_r):
         outlier = np.empty_like(label)
+        # 0: not an outlier, 1: mismatch point, 2: occlusion point
         for y in range(h):
             for x in range(w):
                 if x - label[y, x] < 0:
@@ -558,7 +615,7 @@ def main():
     max_disp = 16
     scale_factor = 16
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('tsukuba.png', np.uint8(labels * scale_factor))
+    cv2.imwrite(os.path.join(SAVE_DIR, 'tsukuba.png'), np.uint8(labels * scale_factor))
 
     name = 'venus'
     print('Venus')  # (383, 434, 3)
@@ -567,7 +624,7 @@ def main():
     max_disp = 20
     scale_factor = 8
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('venus.png', np.uint8(labels * scale_factor))
+    cv2.imwrite(os.path.join(SAVE_DIR, 'venus.png'), np.uint8(labels * scale_factor))
 
     name = 'teddy'
     print('Teddy')  # (375, 450, 3)
@@ -576,7 +633,7 @@ def main():
     max_disp = 60
     scale_factor = 4
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('teddy.png', np.uint8(labels * scale_factor))
+    cv2.imwrite(os.path.join(SAVE_DIR, 'teddy.png'), np.uint8(labels * scale_factor))
 
     name = 'cones'
     print('Cones')  # (375, 450, 3)
@@ -585,7 +642,7 @@ def main():
     max_disp = 60
     scale_factor = 4
     labels = computeDisp(img_left, img_right, max_disp)
-    cv2.imwrite('cones.png', np.uint8(labels * scale_factor))
+    cv2.imwrite(os.path.join(SAVE_DIR, 'cones.png'), np.uint8(labels * scale_factor))
 
 
 if __name__ == '__main__':
