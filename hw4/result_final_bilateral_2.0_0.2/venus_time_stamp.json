@@ -1,0 +1,9 @@
+{
+    "Cost computation": 4.42024827003479,
+    "Cost aggregation": 1067.5983908176422,
+    "Cost optimization": 78.0874674320221,
+    "Cost computation (r)": 4.333906650543213,
+    "Cost aggregation (r)": 1064.5737791061401,
+    "Cost optimization (r)": 78.53684735298157,
+    "Disparity refinement": 4.767871856689453
+}

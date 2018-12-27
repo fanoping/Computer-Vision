@@ -1,0 +1,38 @@
+{
+    "tsukuba": {
+        "Cost computation": 3.8634791374206543,
+        "Cost aggregation": 610.5124130249023,
+        "Cost optimization": 61.01396608352661,
+        "Cost computation (r)": 3.270981788635254,
+        "Cost aggregation (r)": 570.2003858089447,
+        "Cost optimization (r)": 62.682429790496826,
+        "Disparity refinement": 5.108418226242065
+    },
+    "venus": {
+        "Cost computation": 10.24745798110962,
+        "Cost aggregation": 1023.2881650924683,
+        "Cost optimization": 128.99096608161926,
+        "Cost computation (r)": 5.86766505241394,
+        "Cost aggregation (r)": 1054.5626561641693,
+        "Cost optimization (r)": 120.98864674568176,
+        "Disparity refinement": 5.343080997467041
+    },
+    "teddy": {
+        "Cost computation": 11.798908233642578,
+        "Cost aggregation": 1912.1104741096497,
+        "Cost optimization": 358.2101221084595,
+        "Cost computation (r)": 12.24744200706482,
+        "Cost aggregation (r)": 1907.4841148853302,
+        "Cost optimization (r)": 350.04285311698914,
+        "Disparity refinement": 13.64341402053833
+    },
+    "cones": {
+        "Cost computation": 11.62354588508606,
+        "Cost aggregation": 1232.234874010086,
+        "Cost optimization": 371.3289210796356,
+        "Cost computation (r)": 10.790004968643188,
+        "Cost aggregation (r)": 1211.3338460922241,
+        "Cost optimization (r)": 366.3454670906067,
+        "Disparity refinement": 27.767991065979004
+    }
+}
