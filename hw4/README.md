@@ -5,6 +5,10 @@
 
     
 ## Part 2: Disparity Estimation 
+* Reference
+
+    **Mei et al., On Building an Accurate Stereo Matching System on Graphics Hardware. *GPUCV 2011*** [[link](http://www.nlpr.ia.ac.cn/2011papers/gjhy/gh75.pdf)]
+
 * Usage
     * Simply execute `main.py` to generate images.
         ```
