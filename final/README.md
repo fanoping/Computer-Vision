@@ -15,9 +15,6 @@
         
         `-r` for bilateral filter range kernel standard deviation, default = 0.1
         
-        ```
-            python3 main.py --input-left [left_image.png] --input-right [right_image.png] --output [output.pfm]
-        ```
 ## Visualization and Utils
    * Please refer to the file `util.py` and `visualization.py`
-   * Read or write **.pfm** file is in `util.py`  
+   * Read or write **.pfm** file functions are in `util.py`  
