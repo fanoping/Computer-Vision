@@ -1,5 +1,6 @@
 import sys
-from util import readPFM, writePFM, cal_avgerr
+from util import readPFM, writePFM
+from scipy.misc import imread
 import numpy as np
 import cv2
 
@@ -15,5 +16,5 @@ disp_normalized = (disp - min_disp) / (max_disp - min_disp)
 # Jet color mapping
 disp_normalized = (disp_normalized * 255.0).astype(np.uint8)
 disp_normalized = cv2.applyColorMap(disp_normalized, cv2.COLORMAP_JET)
-cv2.imshow("visualized disparity", disp_normalized)
-cv2.waitKey(0)
+# cv2.imwrite("visualized_disparity.png", disp_normalized)
+cv2.imwrite("./synthe/syn7_bil2_tol.png", disp_normalized)

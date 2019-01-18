@@ -45,8 +45,7 @@ def writePFM(file, image, scale=1):
 
     if len(image.shape) == 3 and image.shape[2] == 3:  # color image
         color = True
-    elif len(image.shape) == 2 or len(image.shape) == 3 and image.shape[
-        2] == 1:  # greyscale
+    elif len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1:  # greyscale
         color = False
     else:
         raise Exception(
@@ -63,6 +62,6 @@ def writePFM(file, image, scale=1):
     file.write(b'%f\n' % scale)
 
     image.tofile(file)
-    
+
 def cal_avgerr(GT, disp):
-    return np.sum(np.multiply(np.abs(GT - disp), GT[GT != np.inf])) / np.sum(GT[GT != np.inf])
+    return np.sum(np.multiply(np.abs(GT - disp), GT[GT != np.inf].reshape(GT.shape))) / np.sum(GT[GT != np.inf])

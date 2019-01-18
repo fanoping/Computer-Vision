@@ -11,8 +11,8 @@ parser.add_argument('-s', '--sigma_s', default=0)
 parser.add_argument('-r', '--sigma_r', default=0)
 parser.add_argument('-v', '--verbose', action='store_true')
 args = parser.parse_args()
-SIGMA_S = args.sigma_s
-SIGMA_R = args.sigma_r
+SIGMA_S = float(args.sigma_s)
+SIGMA_R = float(args.sigma_r)
 DEBUG = args.verbose
 SAVE_DIR = "./result_final_bilateral_{}_{}".format(SIGMA_S, SIGMA_R) if SIGMA_R != 0 and SIGMA_S !=0 \
                                                                      else "./result_final"
@@ -64,8 +64,8 @@ def computeDisp(Il, Ir, max_disp):
         print("No preprocess (Bilateral Filter)")
 
     if DEBUG:
-        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_left1.png'.format(name)), Il)
-        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_right1.png'.format(name)), Ir)
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_left.png'.format(name)), Il)
+        cv2.imwrite(os.path.join(SAVE_DIR, '{}_bilateral_filter_right.png'.format(name)), Ir)
 
     Il = Il.astype(np.float64)
     Ir = Ir.astype(np.float64)
